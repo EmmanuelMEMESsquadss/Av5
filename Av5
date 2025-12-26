@@ -1,5 +1,5 @@
 -- LocalScript (StarterPlayerScripts)
--- Enhanced Multi-Universal Aim Assist [ULTIMATE EDITION]
+-- Enhanced Multi-Universal Aim Assist [ULTIMATE EDITION + TRIGGERBOT]
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -8,9 +8,9 @@ local TweenService = game:GetService("TweenService")
 local Teams = game:GetService("Teams")
 
 -- Only run on mobile
-if not UserInputService.TouchEnabled then
-	return
-end
+--if not UserInputService.TouchEnabled then
+--	return
+--end
 
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
@@ -18,9 +18,10 @@ local character, humanoid, hrp
 
 local aimAssistEnabled = false
 local advancedAimEnabled = false
+local espEnabled = false
+local triggerbotEnabled = false
 local currentTarget = nil
 local FOV_RADIUS = 150
-local botsOnlyMode = false
 
 local function setupCharacter(char)
 	character = char
@@ -66,10 +67,10 @@ miniLabel.TextSize = 10
 miniLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
 miniLabel.Parent = miniBtn
 
--- Main Container (ENLARGED FOR NEW BUTTON)
+-- Main Container (ENLARGED FOR TRIGGERBOT)
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 160, 0, 362)
-mainFrame.Position = UDim2.new(0.85, -160, 0.25, 0)
+mainFrame.Size = UDim2.new(0, 160, 0, 370)
+mainFrame.Position = UDim2.new(0.85, -160, 0.22, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = false
@@ -88,7 +89,7 @@ dragHandle.Parent = mainFrame
 
 -- Title
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, -105, 1, 0)
+titleLabel.Size = UDim2.new(1, -100, 1, 0)
 titleLabel.Position = UDim2.new(0, 10, 0, 0)
 titleLabel.BackgroundTransparency = 1
 titleLabel.Text = "AIM ASSIST"
@@ -98,21 +99,21 @@ titleLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.Parent = dragHandle
 
--- Aim Type Selector Button (+ icon for aim assist profiles)
-local aimTypeBtn = Instance.new("TextButton")
-aimTypeBtn.Size = UDim2.new(0, 24, 0, 24)
-aimTypeBtn.Position = UDim2.new(1, -78, 0, 5)
-aimTypeBtn.Text = "+"
-aimTypeBtn.BackgroundColor3 = Color3.fromRGB(255, 140, 60)
-aimTypeBtn.TextColor3 = Color3.new(1, 1, 1)
-aimTypeBtn.Font = Enum.Font.GothamBold
-aimTypeBtn.TextSize = 18
-aimTypeBtn.ZIndex = 10
-aimTypeBtn.Parent = dragHandle
+-- Triggerbot Settings Button (+ icon) - NEW
+local triggerbotSettingsBtn = Instance.new("TextButton")
+triggerbotSettingsBtn.Size = UDim2.new(0, 24, 0, 24)
+triggerbotSettingsBtn.Position = UDim2.new(1, -75, 0, 5)
+triggerbotSettingsBtn.Text = "+"
+triggerbotSettingsBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 100)
+triggerbotSettingsBtn.TextColor3 = Color3.new(1, 1, 1)
+triggerbotSettingsBtn.Font = Enum.Font.GothamBold
+triggerbotSettingsBtn.TextSize = 18
+triggerbotSettingsBtn.ZIndex = 10
+triggerbotSettingsBtn.Parent = dragHandle
 
-local aimTypeCorner = Instance.new("UICorner")
-aimTypeCorner.CornerRadius = UDim.new(0.5, 0)
-aimTypeCorner.Parent = aimTypeBtn
+local triggerbotSettingsCorner = Instance.new("UICorner")
+triggerbotSettingsCorner.CornerRadius = UDim.new(0.5, 0)
+triggerbotSettingsCorner.Parent = triggerbotSettingsBtn
 
 -- Profile Selector Button (+ icon for body part selection)
 local profileBtn = Instance.new("TextButton")
@@ -146,115 +147,130 @@ local minimizeCorner = Instance.new("UICorner")
 minimizeCorner.CornerRadius = UDim.new(0.5, 0)
 minimizeCorner.Parent = minimizeBtn
 
--- Aim Type Menu Container (NEW)
-local aimTypeMenu = Instance.new("Frame")
-aimTypeMenu.Size = UDim2.new(0, 160, 0, 0)
-aimTypeMenu.Position = UDim2.new(1, 5, 0, 0)
-aimTypeMenu.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-aimTypeMenu.BorderSizePixel = 0
-aimTypeMenu.ClipsDescendants = true
-aimTypeMenu.Visible = false
-aimTypeMenu.ZIndex = 5
-aimTypeMenu.Parent = mainFrame
+-- Status Indicator
+local statusDot = Instance.new("Frame")
+statusDot.Size = UDim2.new(0, 10, 0, 10)
+statusDot.Position = UDim2.new(1, -15, 0, 12)
+statusDot.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+statusDot.BorderSizePixel = 0
+statusDot.Parent = dragHandle
 
-local aimMenuCorner = Instance.new("UICorner")
-aimMenuCorner.CornerRadius = UDim.new(0, 8)
-aimMenuCorner.Parent = aimTypeMenu
+local dotCorner = Instance.new("UICorner")
+dotCorner.CornerRadius = UDim.new(0.5, 0)
+dotCorner.Parent = statusDot
 
--- Aim Type Profiles (ANTI-KICK SAFE)
-local aimTypes = {
-	{name = "SMOOTH", desc = "Default Safe", type = "smooth", color = Color3.fromRGB(80, 200, 120), strength = 0.2},
-	{name = "STICKY", desc = "Lock-On Style", type = "sticky", color = Color3.fromRGB(255, 140, 60), strength = 0.35},
-	{name = "SNAP", desc = "Quick Flick", type = "snap", color = Color3.fromRGB(255, 100, 100), strength = 0.5},
-	{name = "GENTLE", desc = "Ultra Safe", type = "gentle", color = Color3.fromRGB(100, 180, 255), strength = 0.1}
-}
+-- Triggerbot Settings Menu Container - NEW
+local triggerbotMenu = Instance.new("Frame")
+triggerbotMenu.Size = UDim2.new(0, 140, 0, 0)
+triggerbotMenu.Position = UDim2.new(1, 5, 0, 30)
+triggerbotMenu.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+triggerbotMenu.BorderSizePixel = 0
+triggerbotMenu.ClipsDescendants = true
+triggerbotMenu.Visible = false
+triggerbotMenu.ZIndex = 11
+triggerbotMenu.Parent = mainFrame
 
-local currentAimType = 1
-local aimTypeButtons = {}
+local triggerbotMenuCorner = Instance.new("UICorner")
+triggerbotMenuCorner.CornerRadius = UDim.new(0, 8)
+triggerbotMenuCorner.Parent = triggerbotMenu
 
-for i, aimType in ipairs(aimTypes) do
-	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(1, -10, 0, 35)
-	btn.Position = UDim2.new(0, 5, 0, 5 + (i-1) * 40)
-	btn.BackgroundColor3 = aimType.color
-	btn.BackgroundTransparency = 0.2
-	btn.BorderSizePixel = 0
-	btn.Font = Enum.Font.GothamBold
-	btn.TextSize = 12
-	btn.TextColor3 = Color3.new(1, 1, 1)
-	btn.Text = aimType.name .. " · " .. aimType.desc
-	btn.ZIndex = 6
-	btn.Parent = aimTypeMenu
-	
-	local btnCorner = Instance.new("UICorner")
-	btnCorner.CornerRadius = UDim.new(0, 6)
-	btnCorner.Parent = btn
-	
-	-- Selection indicator
-	local indicator = Instance.new("Frame")
-	indicator.Size = UDim2.new(0, 3, 1, -6)
-	indicator.Position = UDim2.new(0, 3, 0, 3)
-	indicator.BackgroundColor3 = Color3.new(1, 1, 1)
-	indicator.BorderSizePixel = 0
-	indicator.Visible = (i == 1)
-	indicator.ZIndex = 7
-	indicator.Parent = btn
-	
-	local indCorner = Instance.new("UICorner")
-	indCorner.CornerRadius = UDim.new(1, 0)
-	indCorner.Parent = indicator
-	
-	aimTypeButtons[i] = {button = btn, indicator = indicator, aimType = aimType}
-	
-	-- Aim type selection
-	btn.Activated:Connect(function()
-		currentAimType = i
-		
-		-- Update indicators
-		for j, data in ipairs(aimTypeButtons) do
-			data.indicator.Visible = (j == i)
-			TweenService:Create(data.button, TweenInfo.new(0.2), {
-				BackgroundTransparency = (j == i) and 0.2 or 0.5
-			}):Play()
-		end
-		
-		-- Visual feedback
-		TweenService:Create(btn, TweenInfo.new(0.1), {
-			Size = UDim2.new(1, -8, 0, 35)
-		}):Play()
-		task.wait(0.1)
-		TweenService:Create(btn, TweenInfo.new(0.1), {
-			Size = UDim2.new(1, -10, 0, 35)
-		}):Play()
-	end)
-end
+-- Delay Label
+local delayLabel = Instance.new("TextLabel")
+delayLabel.Size = UDim2.new(1, -10, 0, 18)
+delayLabel.Position = UDim2.new(0, 5, 0, 5)
+delayLabel.BackgroundTransparency = 1
+delayLabel.Text = "Delay: 50ms"
+delayLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+delayLabel.TextSize = 11
+delayLabel.Font = Enum.Font.Gotham
+delayLabel.TextXAlignment = Enum.TextXAlignment.Left
+delayLabel.ZIndex = 12
+delayLabel.Parent = triggerbotMenu
 
--- Aim type menu toggle
-local aimMenuOpen = false
-aimTypeBtn.Activated:Connect(function()
-	aimMenuOpen = not aimMenuOpen
-	
-	if aimMenuOpen then
-		aimTypeMenu.Visible = true
-		TweenService:Create(aimTypeMenu, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-			Size = UDim2.new(0, 160, 0, 165)
-		}):Play()
-		TweenService:Create(aimTypeBtn, TweenInfo.new(0.2), {
-			Rotation = 45,
-			BackgroundColor3 = Color3.fromRGB(206, 36, 36)
-		}):Play()
-	else
-		TweenService:Create(aimTypeMenu, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
-			Size = UDim2.new(0, 160, 0, 0)
-		}):Play()
-		TweenService:Create(aimTypeBtn, TweenInfo.new(0.2), {
-			Rotation = 0,
-			BackgroundColor3 = Color3.fromRGB(255, 140, 60)
-		}):Play()
-		task.wait(0.2)
-		aimTypeMenu.Visible = false
-	end
-end)
+-- Delay Slider
+local delaySliderFrame = Instance.new("Frame")
+delaySliderFrame.Size = UDim2.new(1, -10, 0, 6)
+delaySliderFrame.Position = UDim2.new(0, 5, 0, 25)
+delaySliderFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+delaySliderFrame.BorderSizePixel = 0
+delaySliderFrame.ZIndex = 12
+delaySliderFrame.Parent = triggerbotMenu
+
+local delaySliderCorner = Instance.new("UICorner")
+delaySliderCorner.CornerRadius = UDim.new(0.5, 0)
+delaySliderCorner.Parent = delaySliderFrame
+
+local delaySliderFill = Instance.new("Frame")
+delaySliderFill.Size = UDim2.new(0.1, 0, 1, 0)
+delaySliderFill.BackgroundColor3 = Color3.fromRGB(200, 50, 100)
+delaySliderFill.BorderSizePixel = 0
+delaySliderFill.ZIndex = 13
+delaySliderFill.Parent = delaySliderFrame
+
+local delayFillCorner = Instance.new("UICorner")
+delayFillCorner.CornerRadius = UDim.new(0.5, 0)
+delayFillCorner.Parent = delaySliderFill
+
+local delaySliderKnob = Instance.new("TextButton")
+delaySliderKnob.Size = UDim2.new(0, 14, 0, 14)
+delaySliderKnob.Position = UDim2.new(0.1, -7, 0.5, -7)
+delaySliderKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+delaySliderKnob.Text = ""
+delaySliderKnob.ZIndex = 14
+delaySliderKnob.Parent = delaySliderFrame
+
+local delayKnobCorner = Instance.new("UICorner")
+delayKnobCorner.CornerRadius = UDim.new(0.5, 0)
+delayKnobCorner.Parent = delaySliderKnob
+
+-- Hold Time Label
+local holdLabel = Instance.new("TextLabel")
+holdLabel.Size = UDim2.new(1, -10, 0, 18)
+holdLabel.Position = UDim2.new(0, 5, 0, 40)
+holdLabel.BackgroundTransparency = 1
+holdLabel.Text = "Hold: 100ms"
+holdLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+holdLabel.TextSize = 11
+holdLabel.Font = Enum.Font.Gotham
+holdLabel.TextXAlignment = Enum.TextXAlignment.Left
+holdLabel.ZIndex = 12
+holdLabel.Parent = triggerbotMenu
+
+-- Hold Slider
+local holdSliderFrame = Instance.new("Frame")
+holdSliderFrame.Size = UDim2.new(1, -10, 0, 6)
+holdSliderFrame.Position = UDim2.new(0, 5, 0, 60)
+holdSliderFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+holdSliderFrame.BorderSizePixel = 0
+holdSliderFrame.ZIndex = 12
+holdSliderFrame.Parent = triggerbotMenu
+
+local holdSliderCorner = Instance.new("UICorner")
+holdSliderCorner.CornerRadius = UDim.new(0.5, 0)
+holdSliderCorner.Parent = holdSliderFrame
+
+local holdSliderFill = Instance.new("Frame")
+holdSliderFill.Size = UDim2.new(0.2, 0, 1, 0)
+holdSliderFill.BackgroundColor3 = Color3.fromRGB(200, 50, 100)
+holdSliderFill.BorderSizePixel = 0
+holdSliderFill.ZIndex = 13
+holdSliderFill.Parent = holdSliderFrame
+
+local holdFillCorner = Instance.new("UICorner")
+holdFillCorner.CornerRadius = UDim.new(0.5, 0)
+holdFillCorner.Parent = holdSliderFill
+
+local holdSliderKnob = Instance.new("TextButton")
+holdSliderKnob.Size = UDim2.new(0, 14, 0, 14)
+holdSliderKnob.Position = UDim2.new(0.2, -7, 0.5, -7)
+holdSliderKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+holdSliderKnob.Text = ""
+holdSliderKnob.ZIndex = 14
+holdSliderKnob.Parent = holdSliderFrame
+
+local holdKnobCorner = Instance.new("UICorner")
+holdKnobCorner.CornerRadius = UDim.new(0.5, 0)
+holdKnobCorner.Parent = holdSliderKnob
 
 -- Profile Menu Container (Body Part Selection)
 local profileMenu = Instance.new("Frame")
@@ -264,7 +280,7 @@ profileMenu.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 profileMenu.BorderSizePixel = 0
 profileMenu.ClipsDescendants = true
 profileMenu.Visible = false
-profileMenu.ZIndex = 5
+profileMenu.ZIndex = 11
 profileMenu.Parent = mainFrame
 
 local menuCorner = Instance.new("UICorner")
@@ -294,7 +310,7 @@ for i, part in ipairs(bodyParts) do
 	btn.TextSize = 12
 	btn.TextColor3 = Color3.new(1, 1, 1)
 	btn.Text = part.name .. " · " .. part.desc
-	btn.ZIndex = 6
+	btn.ZIndex = 12
 	btn.Parent = profileMenu
 	
 	local btnCorner = Instance.new("UICorner")
@@ -308,7 +324,7 @@ for i, part in ipairs(bodyParts) do
 	indicator.BackgroundColor3 = Color3.new(1, 1, 1)
 	indicator.BorderSizePixel = 0
 	indicator.Visible = (i == 1)
-	indicator.ZIndex = 7
+	indicator.ZIndex = 13
 	indicator.Parent = btn
 	
 	local indCorner = Instance.new("UICorner")
@@ -341,6 +357,33 @@ for i, part in ipairs(bodyParts) do
 	end)
 end
 
+-- Triggerbot menu toggle
+local triggerbotMenuOpen = false
+triggerbotSettingsBtn.Activated:Connect(function()
+	triggerbotMenuOpen = not triggerbotMenuOpen
+	
+	if triggerbotMenuOpen then
+		triggerbotMenu.Visible = true
+		TweenService:Create(triggerbotMenu, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+			Size = UDim2.new(0, 140, 0, 75)
+		}):Play()
+		TweenService:Create(triggerbotSettingsBtn, TweenInfo.new(0.2), {
+			Rotation = 45,
+			BackgroundColor3 = Color3.fromRGB(206, 36, 36)
+		}):Play()
+	else
+		TweenService:Create(triggerbotMenu, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+			Size = UDim2.new(0, 140, 0, 0)
+		}):Play()
+		TweenService:Create(triggerbotSettingsBtn, TweenInfo.new(0.2), {
+			Rotation = 0,
+			BackgroundColor3 = Color3.fromRGB(200, 50, 100)
+		}):Play()
+		task.wait(0.2)
+		triggerbotMenu.Visible = false
+	end
+end)
+
 -- Profile menu toggle
 local menuOpen = false
 profileBtn.Activated:Connect(function()
@@ -367,18 +410,6 @@ profileBtn.Activated:Connect(function()
 		profileMenu.Visible = false
 	end
 end)
-
--- Status Indicator
-local statusDot = Instance.new("Frame")
-statusDot.Size = UDim2.new(0, 10, 0, 10)
-statusDot.Position = UDim2.new(1, -15, 0, 12)
-statusDot.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-statusDot.BorderSizePixel = 0
-statusDot.Parent = dragHandle
-
-local dotCorner = Instance.new("UICorner")
-dotCorner.CornerRadius = UDim.new(0.5, 0)
-dotCorner.Parent = statusDot
 
 -- Toggle Button
 local toggleBtn = Instance.new("TextButton")
@@ -410,7 +441,7 @@ local advancedCorner = Instance.new("UICorner")
 advancedCorner.CornerRadius = UDim.new(0, 8)
 advancedCorner.Parent = advancedBtn
 
--- ESP Toggle Button (NEW)
+-- ESP Toggle Button
 local espBtn = Instance.new("TextButton")
 espBtn.Size = UDim2.new(1, -20, 0, 32)
 espBtn.Position = UDim2.new(0, 10, 0, 128)
@@ -425,20 +456,20 @@ local espCorner = Instance.new("UICorner")
 espCorner.CornerRadius = UDim.new(0, 8)
 espCorner.Parent = espBtn
 
--- Bots Only Toggle Button (NEW)
-local botsOnlyBtn = Instance.new("TextButton")
-botsOnlyBtn.Size = UDim2.new(1, -20, 0, 32)
-botsOnlyBtn.Position = UDim2.new(0, 10, 0, 168)
-botsOnlyBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 100)
-botsOnlyBtn.Text = "🤖 Bots Only: OFF"
-botsOnlyBtn.Font = Enum.Font.GothamBold
-botsOnlyBtn.TextSize = 12
-botsOnlyBtn.TextColor3 = Color3.new(1, 1, 1)
-botsOnlyBtn.Parent = mainFrame
+-- Triggerbot Toggle Button - NEW
+local triggerbotBtn = Instance.new("TextButton")
+triggerbotBtn.Size = UDim2.new(1, -20, 0, 32)
+triggerbotBtn.Position = UDim2.new(0, 10, 0, 168)
+triggerbotBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 100)
+triggerbotBtn.Text = "🎯 Triggerbot: OFF"
+triggerbotBtn.Font = Enum.Font.GothamBold
+triggerbotBtn.TextSize = 12
+triggerbotBtn.TextColor3 = Color3.new(1, 1, 1)
+triggerbotBtn.Parent = mainFrame
 
-local botsCorner = Instance.new("UICorner")
-botsCorner.CornerRadius = UDim.new(0, 8)
-botsCorner.Parent = botsOnlyBtn
+local triggerbotCorner = Instance.new("UICorner")
+triggerbotCorner.CornerRadius = UDim.new(0, 8)
+triggerbotCorner.Parent = triggerbotBtn
 
 -- Smoothness Label
 local smoothLabel = Instance.new("TextLabel")
@@ -562,7 +593,7 @@ distKnobCorner.Parent = distSliderKnob
 
 -- Info Label
 local infoLabel = Instance.new("TextLabel")
-infoLabel.Size = UDim2.new(1, -20, 0, 35)
+infoLabel.Size = UDim2.new(1, -20, 0, 40)
 infoLabel.Position = UDim2.new(0, 10, 0, 335)
 infoLabel.BackgroundTransparency = 1
 infoLabel.Text = "🎯 Body Part: HEAD\nDrag to reposition"
@@ -577,12 +608,13 @@ local smoothness = 0.25
 local wallCheckEnabled = true
 local teamCheckEnabled = true
 local maxDistance = 300
-local espEnabled = false
+local triggerbotDelay = 50
+local triggerbotHold = 100
 
 -- ESP Storage
 local espHighlights = {}
 
--- Velocity prediction storage (for advanced aim) - IMPROVED
+-- Velocity prediction storage (IMPROVED)
 local targetVelocities = {}
 local lastUpdateTime = tick()
 
@@ -646,7 +678,7 @@ miniBtn.InputChanged:Connect(function(input)
 	end
 end)
 
--- Minimize/Maximize functionality
+-- Minimize/Maximize
 local isMinimized = false
 
 minimizeBtn.Activated:Connect(function()
@@ -680,8 +712,72 @@ miniBtn.Activated:Connect(function()
 		
 		mainFrame.Size = UDim2.new(0, 0, 0, 0)
 		TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-			Size = UDim2.new(0, 160, 0, 362)
+			Size = UDim2.new(0, 160, 0, 370)
 		}):Play()
+	end
+end)
+
+-- Triggerbot Delay Slider
+local delaySliderDragging = false
+
+delaySliderKnob.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		delaySliderDragging = true
+		
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				delaySliderDragging = false
+			end
+		end)
+	end
+end)
+
+delaySliderKnob.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		if delaySliderDragging then
+			local mousePos = input.Position
+			local sliderPos = delaySliderFrame.AbsolutePosition
+			local sliderSize = delaySliderFrame.AbsoluteSize
+			
+			local relativeX = math.clamp((mousePos.X - sliderPos.X) / sliderSize.X, 0, 1)
+			triggerbotDelay = math.floor(relativeX * 500)
+			
+			delaySliderFill.Size = UDim2.new(relativeX, 0, 1, 0)
+			delaySliderKnob.Position = UDim2.new(relativeX, -7, 0.5, -7)
+			delayLabel.Text = "Delay: " .. triggerbotDelay .. "ms"
+		end
+	end
+end)
+
+-- Triggerbot Hold Slider
+local holdSliderDragging = false
+
+holdSliderKnob.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		holdSliderDragging = true
+		
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				holdSliderDragging = false
+			end
+		end)
+	end
+end)
+
+holdSliderKnob.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		if holdSliderDragging then
+			local mousePos = input.Position
+			local sliderPos = holdSliderFrame.AbsolutePosition
+			local sliderSize = holdSliderFrame.AbsoluteSize
+			
+			local relativeX = math.clamp((mousePos.X - sliderPos.X) / sliderSize.X, 0, 1)
+			triggerbotHold = math.floor(relativeX * 500)
+			
+			holdSliderFill.Size = UDim2.new(relativeX, 0, 1, 0)
+			holdSliderKnob.Position = UDim2.new(relativeX, -7, 0.5, -7)
+			holdLabel.Text = "Hold: " .. triggerbotHold .. "ms"
+		end
 	end
 end)
 
@@ -791,279 +887,6 @@ advancedBtn.Activated:Connect(function()
 	end
 end)
 
--- BOT DETECTION SYSTEM (MULTIVERSAL - Works in ANY game)
-local function isBot(targetPlayer)
-	if not targetPlayer then return false end
-	
-	-- Method 1: Check if player has a valid UserId
-	-- Real players have UserId > 0, many bots have UserId <= 0 or negative
-	local userId = targetPlayer.UserId
-	if userId <= 0 or userId == nil then
-		return true -- Likely a bot
-	end
-	
-	-- Method 2: Check account age
-	-- Bots often have AccountAge of 0
-	local success, accountAge = pcall(function()
-		return targetPlayer.AccountAge
-	end)
-	if success and accountAge == 0 then
-		return true -- New account or bot
-	end
-	
-	-- Method 3: Check if player has a real Roblox profile
-	-- Bots sometimes don't have proper player instances
-	if not targetPlayer:IsA("Player") then
-		return true
-	end
-	
-	-- Method 4: Check player's name patterns
-	-- Many games use specific patterns for bots
-	local name = targetPlayer.Name
-	if name:match("^Bot") or name:match("Bot$") or name:match("^NPC") or 
-	   name:match("NPC$") or name:match("^AI") or name:match("Dummy") or
-	   name:match("^Enemy") or name:match("^Mob") then
-		return true
-	end
-	
-	-- Method 5: Check if DisplayName differs significantly from Name
-	-- Real players usually have matching or similar names
-	local displayName = targetPlayer.DisplayName
-	if displayName and displayName ~= name then
-		-- Check if DisplayName looks auto-generated
-		if displayName:match("^Guest") or displayName:match("^Player%d+$") then
-			return true
-		end
-	end
-	
-	-- Method 6: Check if player is in Players service properly
-	-- Some bots exist as models but aren't actual players
-	local isInPlayers = false
-	for _, plr in ipairs(Players:GetPlayers()) do
-		if plr == targetPlayer then
-			isInPlayers = true
-			break
-		end
-	end
-	if not isInPlayers then
-		return true
-	end
-	
-	-- If all checks pass, it's a real player
-	return false
-end
-
--- Bots Only Toggle
-botsOnlyBtn.Activated:Connect(function()
-	botsOnlyMode = not botsOnlyMode
-	
-	if botsOnlyMode then
-		botsOnlyBtn.Text = "🤖 Bots Only: ON"
-		botsOnlyBtn.BackgroundColor3 = Color3.fromRGB(100, 200, 150)
-	else
-		botsOnlyBtn.Text = "🤖 Bots Only: OFF"
-		botsOnlyBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 100)
-	end
-end)
-
--- ESP Functions (HEAVY MONITORING - Multiple Systems) - WITH BOT FILTER
-local function createESP(targetPlayer)
-	if targetPlayer == player then return end
-	
-	-- Bot filtering for ESP
-	if botsOnlyMode and not isBot(targetPlayer) then
-		return -- Skip real players when bots only mode is on
-	end
-	
-	if espHighlights[targetPlayer] and espHighlights[targetPlayer].Parent then return end
-	
-	local char = targetPlayer.Character
-	if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-	
-	-- Remove old highlight if exists but broken
-	if espHighlights[targetPlayer] then
-		pcall(function() espHighlights[targetPlayer]:Destroy() end)
-	end
-	
-	-- Create Highlight
-	local highlight = Instance.new("Highlight")
-	highlight.FillColor = Color3.fromRGB(255, 80, 80)
-	highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-	highlight.FillTransparency = 0.5
-	highlight.OutlineTransparency = 0
-	highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-	highlight.Parent = char
-	
-	espHighlights[targetPlayer] = highlight
-	
-	-- Monitor this specific highlight
-	spawn(function()
-		while espEnabled and targetPlayer and targetPlayer.Parent do
-			wait(1)
-			-- Check if highlight still exists and is parented correctly
-			if not highlight or not highlight.Parent or highlight.Parent ~= char then
-				if espEnabled then
-					-- Re-check bot status before recreating
-					if not botsOnlyMode or isBot(targetPlayer) then
-						createESP(targetPlayer) -- Recreate if broken
-					end
-				end
-				break
-			end
-		end
-	end)
-end
-
-local function removeESP(targetPlayer)
-	if espHighlights[targetPlayer] then
-		pcall(function() espHighlights[targetPlayer]:Destroy() end)
-		espHighlights[targetPlayer] = nil
-	end
-end
-
-local function clearAllESP()
-	for targetPlayer, _ in pairs(espHighlights) do
-		removeESP(targetPlayer)
-	end
-end
-
--- ESP TRIPLE MONITORING SYSTEM (AGGRESSIVE - Never Misses) - WITH BOT FILTER
--- System 1: Fast Loop - Checks every 0.5 seconds
-spawn(function()
-	while true do
-		wait(0.5)
-		
-		if espEnabled then
-			for _, targetPlayer in ipairs(Players:GetPlayers()) do
-				if targetPlayer ~= player and targetPlayer.Character then
-					-- Check bot filter
-					if not botsOnlyMode or isBot(targetPlayer) then
-						if not espHighlights[targetPlayer] or not espHighlights[targetPlayer].Parent then
-							createESP(targetPlayer)
-						end
-					else
-						-- Remove ESP from real players if bots only mode is ON
-						if espHighlights[targetPlayer] then
-							removeESP(targetPlayer)
-						end
-					end
-				end
-			end
-		end
-	end
-end)
-
--- System 2: Character Added Instant Response
-for _, targetPlayer in ipairs(Players:GetPlayers()) do
-	if targetPlayer ~= player then
-		targetPlayer.CharacterAdded:Connect(function(char)
-			if espEnabled then
-				wait(0.3) -- Small delay for character to fully load
-				createESP(targetPlayer)
-			end
-		end)
-		
-		targetPlayer.CharacterRemoving:Connect(function()
-			removeESP(targetPlayer)
-		end)
-	end
-end
-
--- System 3: Player Added Instant Hook
-Players.PlayerAdded:Connect(function(targetPlayer)
-	if targetPlayer ~= player then
-		targetPlayer.CharacterAdded:Connect(function(char)
-			if espEnabled then
-				wait(0.3)
-				createESP(targetPlayer)
-			end
-		end)
-		
-		targetPlayer.CharacterRemoving:Connect(function()
-			removeESP(targetPlayer)
-		end)
-	end
-end)
-
--- System 4: Player Removing Cleanup
-Players.PlayerRemoving:Connect(function(targetPlayer)
-	removeESP(targetPlayer)
-end)
-
--- System 5: Workspace Monitor (catches characters spawned directly)
-spawn(function()
-	while true do
-		wait(1)
-		
-		if espEnabled then
-			-- Check all models in workspace that could be player characters
-			for _, obj in ipairs(workspace:GetChildren()) do
-				if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj:FindFirstChild("HumanoidRootPart") then
-					local targetPlayer = Players:GetPlayerFromCharacter(obj)
-					if targetPlayer and targetPlayer ~= player then
-						if not espHighlights[targetPlayer] or not espHighlights[targetPlayer].Parent then
-							createESP(targetPlayer)
-						end
-					end
-				end
-			end
-		end
-	end
-end)
-
--- System 6: RenderStepped Real-time Check (MOST AGGRESSIVE) - WITH BOT FILTER
-RunService.RenderStepped:Connect(function()
-	if espEnabled then
-		-- Quick validation every frame
-		local currentTime = tick()
-		if currentTime - lastUpdateTime > 0.1 then -- Throttle to every 0.1 seconds
-			lastUpdateTime = currentTime
-			
-			for _, targetPlayer in ipairs(Players:GetPlayers()) do
-				if targetPlayer ~= player and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-					-- Check bot filter
-					if not botsOnlyMode or isBot(targetPlayer) then
-						-- Check if highlight is missing or broken
-						if not espHighlights[targetPlayer] or not espHighlights[targetPlayer].Parent then
-							createESP(targetPlayer)
-						end
-					else
-						-- Remove ESP from real players if bots only mode is ON
-						if espHighlights[targetPlayer] then
-							removeESP(targetPlayer)
-						end
-					end
-				end
-			end
-		end
-	end
-end)
-
--- ESP Toggle (IMPROVED - Instant Application)
-espBtn.Activated:Connect(function()
-	espEnabled = not espEnabled
-	
-	if espEnabled then
-		espBtn.Text = "👁️ ESP: ON"
-		espBtn.BackgroundColor3 = Color3.fromRGB(150, 80, 255)
-		
-		-- Immediately create ESP for ALL players (aggressive instant load)
-		task.spawn(function()
-			for _, targetPlayer in ipairs(Players:GetPlayers()) do
-				if targetPlayer ~= player then
-					if targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-						createESP(targetPlayer)
-					end
-				end
-			end
-		end)
-	else
-		espBtn.Text = "👁️ ESP: OFF"
-		espBtn.BackgroundColor3 = Color3.fromRGB(100, 50, 200)
-		clearAllESP()
-	end
-end)
-
 -- Main Toggle
 toggleBtn.Activated:Connect(function()
 	aimAssistEnabled = not aimAssistEnabled
@@ -1089,7 +912,7 @@ local function isTeammate(targetPlayer)
 	return player.Team == targetPlayer.Team
 end
 
--- Wall detection using Raycast (IMPROVED - Multiple rays for small openings)
+-- Wall detection using Raycast (IMPROVED - 5-Point System)
 local function hasLineOfSight(targetPart)
 	if not wallCheckEnabled then return true end
 	if not hrp or not targetPart then return false end
@@ -1104,47 +927,40 @@ local function hasLineOfSight(targetPart)
 	raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
 	raycastParams.IgnoreWater = true
 	
-	-- MAIN CENTER RAY
+	-- Primary raycast (center)
 	local result = workspace:Raycast(origin, direction * distance, raycastParams)
-	if result == nil then
-		return true -- Direct line of sight
+	
+	if not result then
+		return true
 	end
 	
-	-- IMPROVED: Try multiple rays from different angles (for windows/small openings)
-	-- This creates a small "cone" of rays to find gaps
+	-- Multi-point detection for small openings
 	local offsets = {
-		Vector3.new(0.3, 0, 0),    -- Right
-		Vector3.new(-0.3, 0, 0),   -- Left
-		Vector3.new(0, 0.3, 0),    -- Up
-		Vector3.new(0, -0.3, 0),   -- Down
-		Vector3.new(0.2, 0.2, 0),  -- Top-right
-		Vector3.new(-0.2, 0.2, 0), -- Top-left
-		Vector3.new(0.2, -0.2, 0), -- Bottom-right
-		Vector3.new(-0.2, -0.2, 0) -- Bottom-left
+		Vector3.new(0.5, 0, 0),
+		Vector3.new(-0.5, 0, 0),
+		Vector3.new(0, 0.5, 0),
+		Vector3.new(0, -0.5, 0)
 	}
 	
-	-- Try offset rays (checks for small openings like windows)
 	for _, offset in ipairs(offsets) do
-		local offsetOrigin = origin + offset
-		local offsetDirection = (targetPos - offsetOrigin).Unit
-		local offsetDistance = (targetPos - offsetOrigin).Magnitude
+		local offsetTarget = targetPos + offset
+		local offsetDirection = (offsetTarget - origin).Unit
+		local offsetDistance = (offsetTarget - origin).Magnitude
 		
-		local offsetResult = workspace:Raycast(offsetOrigin, offsetDirection * offsetDistance, raycastParams)
+		local offsetResult = workspace:Raycast(origin, offsetDirection * offsetDistance, raycastParams)
 		
-		if offsetResult == nil then
-			return true -- Found a clear path through small opening
+		if not offsetResult then
+			return true
 		end
 	end
 	
-	-- All rays blocked, no line of sight
 	return false
 end
 
--- Get target part from character (handles different body part names)
+-- Get target part from character
 local function getTargetPart(targetChar)
 	local part = targetChar:FindFirstChild(aimPart)
 	
-	-- Fallback for different game naming conventions
 	if not part then
 		if aimPart == "Neck" then
 			part = targetChar:FindFirstChild("UpperTorso") or targetChar:FindFirstChild("Torso")
@@ -1153,10 +969,10 @@ local function getTargetPart(targetChar)
 		end
 	end
 	
-	return part or targetChar:FindFirstChild("Head") -- Ultimate fallback to head
+	return part or targetChar:FindFirstChild("Head")
 end
 
--- Calculate velocity prediction (IMPROVED ACCURACY)
+-- Calculate velocity prediction (IMPROVED)
 local function getPredictedPosition(targetPart)
 	if not advancedAimEnabled then
 		return targetPart.Position
@@ -1169,10 +985,8 @@ local function getPredictedPosition(targetPart)
 	local currentPos = targetPart.Position
 	local currentTime = tick()
 	
-	-- Get actual velocity from physics
 	local actualVelocity = targetPart.AssemblyLinearVelocity or targetPart.Velocity or Vector3.zero
 	
-	-- Store velocity data
 	if not targetVelocities[targetId] then
 		targetVelocities[targetId] = {
 			lastPos = currentPos,
@@ -1187,26 +1001,21 @@ local function getPredictedPosition(targetPart)
 	local data = targetVelocities[targetId]
 	local deltaTime = currentTime - data.lastTime
 	
-	if deltaTime > 0.05 then -- Update every 0.05 seconds for better accuracy
-		-- Calculate position-based velocity as backup
+	if deltaTime > 0.05 then
 		local deltaPos = currentPos - data.lastPos
 		local calculatedVelocity = deltaPos / deltaTime
 		
-		-- Use actual physics velocity if available, otherwise use calculated
 		local velocity = actualVelocity
 		if velocity.Magnitude < 0.5 then
 			velocity = calculatedVelocity
 		end
 		
-		-- Check if target is moving (lower threshold for better detection)
 		local speed = velocity.Magnitude
-		data.isMoving = speed > 1 -- Moving if speed > 1 stud/sec
+		data.isMoving = speed > 1
 		
 		if data.isMoving then
-			-- Smooth velocity tracking with better interpolation
 			data.smoothVelocity = data.smoothVelocity:Lerp(velocity, 0.7)
 		else
-			-- Target stopped, gradually zero out velocity
 			data.smoothVelocity = data.smoothVelocity:Lerp(Vector3.zero, 0.9)
 		end
 		
@@ -1215,26 +1024,22 @@ local function getPredictedPosition(targetPart)
 		data.lastTime = currentTime
 	end
 	
-	-- Predict future position with improved calculation
 	if data.isMoving and data.smoothVelocity.Magnitude > 0.5 then
-		-- Calculate distance to target for dynamic prediction time
 		local distance = (currentPos - camera.CFrame.Position).Magnitude
-		local predictionTime = math.clamp(distance / 500, 0.1, 0.25) -- Dynamic prediction based on distance
+		local predictionTime = math.clamp(distance / 500, 0.1, 0.25)
 		
-		-- Account for gravity if target is falling
 		local gravityOffset = Vector3.zero
-		if data.smoothVelocity.Y < -5 then -- If falling fast
+		if data.smoothVelocity.Y < -5 then
 			gravityOffset = Vector3.new(0, -9.8 * predictionTime * predictionTime * 0.5, 0)
 		end
 		
 		return currentPos + (data.smoothVelocity * predictionTime) + gravityOffset
 	else
-		-- Target stopped or barely moving, return current position
 		return currentPos
 	end
 end
 
--- Get valid target (WITH BOT FILTER)
+-- Get valid target
 local function getClosestTarget()
 	if not camera or not hrp then return nil end
 	
@@ -1244,11 +1049,6 @@ local function getClosestTarget()
 	
 	for _, targetPlayer in ipairs(Players:GetPlayers()) do
 		if targetPlayer ~= player and targetPlayer.Character then
-			-- Bot filtering for aim assist
-			if botsOnlyMode and not isBot(targetPlayer) then
-				continue -- Skip real players when bots only mode is on
-			end
-			
 			if isTeammate(targetPlayer) then continue end
 			
 			local targetChar = targetPlayer.Character
@@ -1258,13 +1058,10 @@ local function getClosestTarget()
 			if targetPart and targetHum and targetHum.Health > 0 then
 				local distance = (targetPart.Position - hrp.Position).Magnitude
 				
-				-- Distance check
 				if distance > maxDistance then continue end
 				
-				-- Wall check
 				if not hasLineOfSight(targetPart) then continue end
 				
-				-- Screen position check (FOV circle)
 				local screenPos, onScreen = camera:WorldToViewportPoint(targetPart.Position)
 				if onScreen then
 					local screenDistance = (Vector2.new(screenPos.X, screenPos.Y) - screenCenter).Magnitude
@@ -1281,86 +1078,418 @@ local function getClosestTarget()
 	return closestTarget
 end
 
--- Update info label with current body part and aim type
+-- ESP Functions (HEAVY MONITORING)
+local function createESP(targetPlayer)
+	if targetPlayer == player then return end
+	if espHighlights[targetPlayer] and espHighlights[targetPlayer].Parent then return end
+	
+	local char = targetPlayer.Character
+	if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+	
+	if espHighlights[targetPlayer] then
+		pcall(function() espHighlights[targetPlayer]:Destroy() end)
+	end
+	
+	local highlight = Instance.new("Highlight")
+	highlight.FillColor = Color3.fromRGB(255, 80, 80)
+	highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+	highlight.FillTransparency = 0.5
+	highlight.OutlineTransparency = 0
+	highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+	highlight.Parent = char
+	
+	espHighlights[targetPlayer] = highlight
+	
+	spawn(function()
+		while espEnabled and targetPlayer and targetPlayer.Parent do
+			wait(1)
+			if not highlight or not highlight.Parent or highlight.Parent ~= char then
+				if espEnabled then
+					createESP(targetPlayer)
+				end
+				break
+			end
+		end
+	end)
+end
+
+local function removeESP(targetPlayer)
+	if espHighlights[targetPlayer] then
+		pcall(function() espHighlights[targetPlayer]:Destroy() end)
+		espHighlights[targetPlayer] = nil
+	end
+end
+
+local function clearAllESP()
+	for targetPlayer, _ in pairs(espHighlights) do
+		removeESP(targetPlayer)
+	end
+end
+
+-- ESP 6 Monitoring Systems
 spawn(function()
 	while true do
 		wait(0.5)
-		if bodyPartButtons[currentBodyPart] and aimTypeButtons[currentAimType] then
-			local partName = bodyPartButtons[currentBodyPart].part.name
-			local aimName = aimTypeButtons[currentAimType].aimType.name
-			infoLabel.Text = "🎯 " .. partName .. " | " .. aimName .. "\nDrag to reposition"
+		
+		if espEnabled then
+			for _, targetPlayer in ipairs(Players:GetPlayers()) do
+				if targetPlayer ~= player and targetPlayer.Character then
+					if not espHighlights[targetPlayer] or not espHighlights[targetPlayer].Parent then
+						createESP(targetPlayer)
+					end
+				end
+			end
 		end
 	end
 end)
 
--- Aim assist loop (WITH DIFFERENT AIM TYPES)
+for _, targetPlayer in ipairs(Players:GetPlayers()) do
+	if targetPlayer ~= player then
+		targetPlayer.CharacterAdded:Connect(function(char)
+			if espEnabled then
+				wait(0.3)
+				createESP(targetPlayer)
+			end
+		end)
+		
+		targetPlayer.CharacterRemoving:Connect(function()
+			removeESP(targetPlayer)
+		end)
+	end
+end
+
+Players.PlayerAdded:Connect(function(targetPlayer)
+	if targetPlayer ~= player then
+		targetPlayer.CharacterAdded:Connect(function(char)
+			if espEnabled then
+				wait(0.3)
+				createESP(targetPlayer)
+			end
+		end)
+		
+		targetPlayer.CharacterRemoving:Connect(function()
+			removeESP(targetPlayer)
+		end)
+	end
+end)
+
+Players.PlayerRemoving:Connect(function(targetPlayer)
+	removeESP(targetPlayer)
+end)
+
+spawn(function()
+	while true do
+		wait(1)
+		
+		if espEnabled then
+			for _, obj in ipairs(workspace:GetChildren()) do
+				if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj:FindFirstChild("HumanoidRootPart") then
+					local targetPlayer = Players:GetPlayerFromCharacter(obj)
+					if targetPlayer and targetPlayer ~= player then
+						if not espHighlights[targetPlayer] or not espHighlights[targetPlayer].Parent then
+							createESP(targetPlayer)
+						end
+					end
+				end
+			end
+		end
+	end
+end)
+
+RunService.RenderStepped:Connect(function()
+	if espEnabled then
+		local currentTime = tick()
+		if currentTime - lastUpdateTime > 0.1 then
+			lastUpdateTime = currentTime
+			
+			for _, targetPlayer in ipairs(Players:GetPlayers()) do
+				if targetPlayer ~= player and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+					if not espHighlights[targetPlayer] or not espHighlights[targetPlayer].Parent then
+						createESP(targetPlayer)
+					end
+				end
+			end
+		end
+	end
+end)
+
+-- ESP Toggle
+espBtn.Activated:Connect(function()
+	espEnabled = not espEnabled
+	
+	if espEnabled then
+		espBtn.Text = "👁️ ESP: ON"
+		espBtn.BackgroundColor3 = Color3.fromRGB(150, 80, 255)
+		
+		task.spawn(function()
+			for _, targetPlayer in ipairs(Players:GetPlayers()) do
+				if targetPlayer ~= player then
+					if targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+						createESP(targetPlayer)
+					end
+				end
+			end
+		end)
+	else
+		espBtn.Text = "👁️ ESP: OFF"
+		espBtn.BackgroundColor3 = Color3.fromRGB(100, 50, 200)
+		clearAllESP()
+	end
+end)
+
+-- MOBILE TRIGGERBOT SYSTEM (Proper Implementation - No Movement Block!)
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local VirtualUser = game:GetService("VirtualUser")
+
+local function fireWeapon()
+	-- METHOD 1: Tool Activation (Best for Mobile - No Touch Blocking!)
+	pcall(function()
+		local tool = character and character:FindFirstChildOfClass("Tool")
+		if tool then
+			tool:Activate()
+			task.wait(triggerbotHold / 1000)
+			tool:Deactivate()
+			return
+		end
+	end)
+	
+	-- METHOD 2: RemoteEvent Detection (Game-Specific Shooting)
+	pcall(function()
+		-- Look for common shooting remotes in ReplicatedStorage
+		local remotes = ReplicatedStorage:GetDescendants()
+		for _, remote in ipairs(remotes) do
+			if remote:IsA("RemoteEvent") and (
+				remote.Name:lower():find("shoot") or 
+				remote.Name:lower():find("fire") or
+				remote.Name:lower():find("attack") or
+				remote.Name:lower():find("damage")
+			) then
+				remote:FireServer()
+				task.wait(triggerbotHold / 1000)
+				return
+			end
+		end
+	end)
+	
+	-- METHOD 3: Context Action Button Press (Mobile Fire Button)
+	pcall(function()
+		local ContextActionService = game:GetService("ContextActionService")
+		local actions = ContextActionService:GetAllBoundActionInfo()
+		
+		for actionName, actionInfo in pairs(actions) do
+			if actionName:lower():find("fire") or actionName:lower():find("shoot") or actionName:lower():find("action") then
+				ContextActionService:BindAction(actionName, function() end, false)
+				ContextActionService:CallFunction(actionName, "Begin")
+				task.wait(triggerbotHold / 1000)
+				ContextActionService:CallFunction(actionName, "End")
+				return
+			end
+		end
+	end)
+	
+	-- METHOD 4: GuiButton Detection (Mobile Shoot Button)
+	pcall(function()
+		local playerGui = player:WaitForChild("PlayerGui")
+		for _, gui in ipairs(playerGui:GetDescendants()) do
+			if gui:IsA("GuiButton") or gui:IsA("ImageButton") then
+				local name = gui.Name:lower()
+				if name:find("fire") or name:find("shoot") or name:find("attack") then
+					-- Simulate button press without blocking touch
+					for _, connection in ipairs(getconnections(gui.MouseButton1Click)) do
+						connection:Fire()
+					end
+					task.wait(triggerbotHold / 1000)
+					return
+				end
+			end
+		end
+	end)
+	
+	-- METHOD 5: VirtualUser Button1Down (Last Resort - Safer than VirtualInputManager)
+	pcall(function()
+		if UserInputService.TouchEnabled then
+			-- Use screen center position instead of 0,0 to avoid blocking movement
+			local screenCenter = camera.ViewportSize / 2
+			VirtualUser:Button1Down(Vector2.new(screenCenter.X, screenCenter.Y))
+			task.wait(triggerbotHold / 1000)
+			VirtualUser:Button1Up(Vector2.new(screenCenter.X, screenCenter.Y))
+		end
+	end)
+	
+	-- METHOD 6: Mouse1 for PC (Fallback)
+	pcall(function()
+		if mouse1press and mouse1release and not UserInputService.TouchEnabled then
+			mouse1press()
+			task.wait(triggerbotHold / 1000)
+			mouse1release()
+		end
+	end)
+end
+
+local function getMouseTarget()
+	if not hrp then return nil end
+	
+	-- METHOD 1: Mouse.Target (Most Common)
+	local mouse = player:GetMouse()
+	if mouse and mouse.Target then
+		local target = mouse.Target
+		local targetModel = target:FindFirstAncestorOfClass("Model")
+		
+		if targetModel then
+			local targetPlayer = Players:GetPlayerFromCharacter(targetModel)
+			if targetPlayer and targetPlayer ~= player then
+				if teamCheckEnabled and isTeammate(targetPlayer) then return nil end
+				
+				local targetHum = targetModel:FindFirstChildWhichIsA("Humanoid")
+				if targetHum and targetHum.Health > 0 then
+					local targetHRP = targetModel:FindFirstChild("HumanoidRootPart")
+					if targetHRP then
+						local distance = (targetHRP.Position - hrp.Position).Magnitude
+						if distance <= maxDistance then
+							return targetModel
+						end
+					end
+				end
+			end
+		end
+	end
+	
+	-- METHOD 2: Camera Raycast (More Reliable)
+	local screenCenter = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+	local unitRay = camera:ViewportPointToRay(screenCenter.X, screenCenter.Y)
+	
+	local raycastParams = RaycastParams.new()
+	raycastParams.FilterDescendantsInstances = {character}
+	raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+	raycastParams.IgnoreWater = true
+	
+	local rayResult = workspace:Raycast(unitRay.Origin, unitRay.Direction * maxDistance, raycastParams)
+	
+	if rayResult and rayResult.Instance then
+		local targetModel = rayResult.Instance:FindFirstAncestorOfClass("Model")
+		
+		if targetModel then
+			local targetPlayer = Players:GetPlayerFromCharacter(targetModel)
+			if targetPlayer and targetPlayer ~= player then
+				if teamCheckEnabled and isTeammate(targetPlayer) then return nil end
+				
+				local targetHum = targetModel:FindFirstChildWhichIsA("Humanoid")
+				if targetHum and targetHum.Health > 0 then
+					return targetModel
+				end
+			end
+		end
+	end
+	
+	-- METHOD 3: Screen Center FOV Check (Backup)
+	for _, targetPlayer in ipairs(Players:GetPlayers()) do
+		if targetPlayer ~= player and targetPlayer.Character then
+			if teamCheckEnabled and isTeammate(targetPlayer) then continue end
+			
+			local targetChar = targetPlayer.Character
+			local targetHum = targetChar:FindFirstChildWhichIsA("Humanoid")
+			local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
+			
+			if targetHum and targetHum.Health > 0 and targetHRP then
+				local distance = (targetHRP.Position - hrp.Position).Magnitude
+				if distance <= maxDistance then
+					local screenPos, onScreen = camera:WorldToViewportPoint(targetHRP.Position)
+					if onScreen then
+						local distanceFromCenter = (Vector2.new(screenPos.X, screenPos.Y) - screenCenter).Magnitude
+						if distanceFromCenter < 50 then
+							return targetChar
+						end
+					end
+				end
+			end
+		end
+	end
+	
+	return nil
+end
+
+local triggerbotCooldown = false
+local lastTarget = nil
+local lastFireTime = 0
+
+-- Triggerbot Loop (Mobile Safe - Won't Block Movement!)
+RunService.Heartbeat:Connect(function()
+	if not triggerbotEnabled or triggerbotCooldown then return end
+	
+	-- Throttle to avoid spam
+	local currentTime = tick()
+	if currentTime - lastFireTime < 0.1 then return end
+	
+	local target = getMouseTarget()
+	
+	if target then
+		triggerbotCooldown = true
+		lastTarget = target
+		
+		-- Delay before shooting
+		task.wait(triggerbotDelay / 1000)
+		
+		-- Verify target is still valid
+		local currentTarget = getMouseTarget()
+		if currentTarget == target then
+			-- Fire! (Mobile Safe - Multiple Methods)
+			lastFireTime = tick()
+			fireWeapon()
+		end
+		
+		-- Cooldown
+		task.wait(0.05)
+		triggerbotCooldown = false
+	end
+end)
+
+-- Triggerbot Toggle
+triggerbotBtn.Activated:Connect(function()
+	triggerbotEnabled = not triggerbotEnabled
+	
+	if triggerbotEnabled then
+		triggerbotBtn.Text = "🎯 Triggerbot: ON"
+		triggerbotBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 120)
+	else
+		triggerbotBtn.Text = "🎯 Triggerbot: OFF"
+		triggerbotBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 100)
+	end
+end)
+
+-- Update info label
+spawn(function()
+	while true do
+		wait(0.5)
+		if bodyPartButtons[currentBodyPart] then
+			local partName = bodyPartButtons[currentBodyPart].part.name
+			infoLabel.Text = "🎯 Body Part: " .. partName .. "\nDrag to reposition"
+		end
+	end
+end)
+
+-- Aim assist loop
 RunService.RenderStepped:Connect(function()
 	if not aimAssistEnabled or not camera then return end
 	
-	-- Find target
 	currentTarget = getClosestTarget()
 	
 	if currentTarget then
-		-- Get target position (with prediction if advanced aim enabled)
 		local targetPos = getPredictedPosition(currentTarget)
-		
-		-- Current camera look direction
 		local currentCFrame = camera.CFrame
-		
-		-- Desired camera CFrame looking at target
 		local desiredCFrame = CFrame.new(currentCFrame.Position, targetPos)
-		
-		-- Get current aim type settings
-		local aimSettings = aimTypeButtons[currentAimType].aimType
-		local aimStrength = aimSettings.strength
-		
-		-- Apply different aim assist types
-		if aimSettings.type == "smooth" then
-			-- SMOOTH: Classic lerp with base smoothness + type strength
-			local finalSmooth = smoothness * (1 + aimStrength)
-			camera.CFrame = currentCFrame:Lerp(desiredCFrame, finalSmooth)
-			
-		elseif aimSettings.type == "sticky" then
-			-- STICKY: Locks on harder when close to target (magnets effect)
-			local angleToTarget = math.acos(currentCFrame.LookVector:Dot((targetPos - currentCFrame.Position).Unit))
-			local stickiness = math.clamp(1 - (angleToTarget / math.rad(30)), 0, 1) -- Stronger when within 30 degrees
-			local finalStrength = smoothness + (stickiness * aimStrength)
-			camera.CFrame = currentCFrame:Lerp(desiredCFrame, finalStrength)
-			
-		elseif aimSettings.type == "snap" then
-			-- SNAP: Quick flicks to target, then holds
-			local distanceToTarget = (camera.CFrame.LookVector * 100 - (targetPos - camera.CFrame.Position)).Magnitude
-			if distanceToTarget < 5 then
-				-- Very close to looking at target, hold steady
-				camera.CFrame = currentCFrame:Lerp(desiredCFrame, smoothness * 0.5)
-			else
-				-- Far from target, snap quickly
-				camera.CFrame = currentCFrame:Lerp(desiredCFrame, aimStrength)
-			end
-			
-		elseif aimSettings.type == "gentle" then
-			-- GENTLE: Ultra-safe, very subtle assistance (hardest to detect)
-			-- Only assists when you're ALREADY aiming near the target
-			local angleToTarget = math.acos(currentCFrame.LookVector:Dot((targetPos - currentCFrame.Position).Unit))
-			if angleToTarget < math.rad(15) then -- Only helps if within 15 degrees
-				camera.CFrame = currentCFrame:Lerp(desiredCFrame, smoothness * aimStrength)
-			end
-		end
+		camera.CFrame = currentCFrame:Lerp(desiredCFrame, smoothness)
 	end
 end)
 
 print("========================================")
-print("Enhanced Aim Assist [ULTIMATE EDITION]")
+print("Enhanced Aim Assist [MOBILE OPTIMIZED]")
 print("========================================")
-print("✅ 4 Aim Types (Smooth/Sticky/Snap/Gentle)")
 print("✅ Body Part Selection (Head/Neck/Torso/Leg)")
 print("✅ Advanced Aim (IMPROVED Accuracy)")
 print("✅ ESP (6 MONITORING SYSTEMS)")
-print("✅ Wall Detection (9-Ray Multi-Angle)")
-print("✅ Bots Only Mode (6 Detection Methods)")
-print("✅ Team Check + Distance Control")
-print("💡 Orange [+] = Aim Types | Blue [+] = Body Parts")
-print("🎯 SMOOTH = Safe | STICKY = Magnet | SNAP = Flick")
-print("🌟 GENTLE = Ultra-safe (hardest to detect)")
-print("👁️ Wall check now finds windows & small gaps!")
+print("✅ Wall Detection (5-Point Raycast)")
+print("✅ Triggerbot (6 Methods - NO MOVEMENT BLOCK!)")
+print("💡 2 [+] buttons for settings")
+print("📱 MOBILE SAFE - Won't interfere with controls!")
+print("🎯 Methods: Tool/Remote/Context/Button/VirtualUser/Mouse")
 print("========================================")
