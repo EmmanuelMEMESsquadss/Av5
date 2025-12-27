@@ -1,5 +1,5 @@
 -- LocalScript (StarterPlayerScripts)
--- Multi-Universal Invisible [COMPLETE - HIDE EVERYTHING]
+-- Multi-Universal Hitbox Expander [DAMAGE BYPASS]
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -9,7 +9,9 @@ local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 local character, humanoid, hrp
 
-local invisEnabled = false
+local hitboxEnabled = false
+local currentSize = 10
+local currentMethod = "hrp"
 
 local function setupCharacter(char)
 	character = char
@@ -22,19 +24,19 @@ player.CharacterAdded:Connect(setupCharacter)
 
 -- GUI
 local gui = Instance.new("ScreenGui")
-gui.Name = "InvisibleUI"
+gui.Name = "HitboxUI"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
 local miniBtn = Instance.new("TextButton")
 miniBtn.Size = UDim2.new(0, 60, 0, 60)
 miniBtn.Position = UDim2.new(0.85, -60, 0.5, -30)
-miniBtn.BackgroundColor3 = Color3.fromRGB(150, 100, 255)
+miniBtn.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
 miniBtn.BorderSizePixel = 0
 miniBtn.Font = Enum.Font.GothamBold
 miniBtn.TextSize = 24
 miniBtn.TextColor3 = Color3.new(1, 1, 1)
-miniBtn.Text = "👻"
+miniBtn.Text = "🎯"
 miniBtn.Visible = false
 miniBtn.ZIndex = 10
 miniBtn.Active = true
@@ -45,8 +47,8 @@ miniBtnCorner.CornerRadius = UDim.new(0.5, 0)
 miniBtnCorner.Parent = miniBtn
 
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 220, 0, 200)
-mainFrame.Position = UDim2.new(0.85, -220, 0.4, 0)
+mainFrame.Size = UDim2.new(0, 200, 0, 380)
+mainFrame.Position = UDim2.new(0.85, -200, 0.28, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = false
@@ -63,15 +65,30 @@ dragHandle.Active = true
 dragHandle.Parent = mainFrame
 
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, -45, 1, 0)
+titleLabel.Size = UDim2.new(1, -75, 1, 0)
 titleLabel.Position = UDim2.new(0, 10, 0, 0)
 titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "INVISIBLE"
+titleLabel.Text = "HITBOX"
 titleLabel.Font = Enum.Font.GothamBold
 titleLabel.TextSize = 18
-titleLabel.TextColor3 = Color3.fromRGB(150, 100, 255)
+titleLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.Parent = dragHandle
+
+local methodBtn = Instance.new("TextButton")
+methodBtn.Size = UDim2.new(0, 24, 0, 24)
+methodBtn.Position = UDim2.new(1, -50, 0, 5)
+methodBtn.Text = "+"
+methodBtn.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+methodBtn.TextColor3 = Color3.new(1, 1, 1)
+methodBtn.Font = Enum.Font.GothamBold
+methodBtn.TextSize = 18
+methodBtn.ZIndex = 10
+methodBtn.Parent = dragHandle
+
+local methodCorner = Instance.new("UICorner")
+methodCorner.CornerRadius = UDim.new(0.5, 0)
+methodCorner.Parent = methodBtn
 
 local minimizeBtn = Instance.new("TextButton")
 minimizeBtn.Size = UDim2.new(0, 20, 0, 20)
@@ -99,11 +116,112 @@ local dotCorner = Instance.new("UICorner")
 dotCorner.CornerRadius = UDim.new(0.5, 0)
 dotCorner.Parent = statusDot
 
+-- Method Menu
+local methodMenu = Instance.new("Frame")
+methodMenu.Size = UDim2.new(0, 180, 0, 0)
+methodMenu.Position = UDim2.new(1, 5, 0, 0)
+methodMenu.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+methodMenu.BorderSizePixel = 0
+methodMenu.ClipsDescendants = true
+methodMenu.Visible = false
+methodMenu.ZIndex = 11
+methodMenu.Parent = mainFrame
+
+local menuCorner = Instance.new("UICorner")
+menuCorner.CornerRadius = UDim.new(0, 8)
+menuCorner.Parent = methodMenu
+
+local methods = {
+	{name = "HRP EXPAND", desc = "Root Part", id = "hrp", color = Color3.fromRGB(255, 100, 100)},
+	{name = "ALL PARTS", desc = "Full Body", id = "allparts", color = Color3.fromRGB(100, 150, 255)},
+	{name = "LIMB ONLY", desc = "Arms/Legs", id = "limbs", color = Color3.fromRGB(150, 255, 100)},
+	{name = "BATTLEGROUNDS", desc = "Combat", id = "battlegrounds", color = Color3.fromRGB(255, 150, 100)}
+}
+
+local methodButtons = {}
+
+for i, method in ipairs(methods) do
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1, -10, 0, 32)
+	btn.Position = UDim2.new(0, 5, 0, 5 + (i-1) * 37)
+	btn.BackgroundColor3 = method.color
+	btn.BackgroundTransparency = 0.2
+	btn.BorderSizePixel = 0
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 10
+	btn.TextColor3 = Color3.new(1, 1, 1)
+	btn.Text = method.name .. " · " .. method.desc
+	btn.ZIndex = 12
+	btn.Parent = methodMenu
+	
+	local btnCorner = Instance.new("UICorner")
+	btnCorner.CornerRadius = UDim.new(0, 6)
+	btnCorner.Parent = btn
+	
+	local indicator = Instance.new("Frame")
+	indicator.Size = UDim2.new(0, 3, 1, -6)
+	indicator.Position = UDim2.new(0, 3, 0, 3)
+	indicator.BackgroundColor3 = Color3.new(1, 1, 1)
+	indicator.BorderSizePixel = 0
+	indicator.Visible = (i == 1)
+	indicator.ZIndex = 13
+	indicator.Parent = btn
+	
+	local indCorner = Instance.new("UICorner")
+	indCorner.CornerRadius = UDim.new(1, 0)
+	indCorner.Parent = indicator
+	
+	methodButtons[i] = {button = btn, indicator = indicator, method = method}
+	
+	btn.Activated:Connect(function()
+		currentMethod = method.id
+		
+		for j, data in ipairs(methodButtons) do
+			data.indicator.Visible = (j == i)
+			TweenService:Create(data.button, TweenInfo.new(0.2), {
+				BackgroundTransparency = (j == i) and 0.2 or 0.5
+			}):Play()
+		end
+		
+		if hitboxEnabled then
+			disableHitbox()
+			task.wait(0.1)
+			enableHitbox()
+		end
+	end)
+end
+
+local menuOpen = false
+methodBtn.Activated:Connect(function()
+	menuOpen = not menuOpen
+	
+	if menuOpen then
+		methodMenu.Visible = true
+		TweenService:Create(methodMenu, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+			Size = UDim2.new(0, 180, 0, 155)
+		}):Play()
+		TweenService:Create(methodBtn, TweenInfo.new(0.2), {
+			Rotation = 45,
+			BackgroundColor3 = Color3.fromRGB(206, 36, 36)
+		}):Play()
+	else
+		TweenService:Create(methodMenu, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+			Size = UDim2.new(0, 180, 0, 0)
+		}):Play()
+		TweenService:Create(methodBtn, TweenInfo.new(0.2), {
+			Rotation = 0,
+			BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+		}):Play()
+		task.wait(0.2)
+		methodMenu.Visible = false
+	end
+end)
+
 local toggleBtn = Instance.new("TextButton")
-toggleBtn.Size = UDim2.new(1, -20, 0, 50)
+toggleBtn.Size = UDim2.new(1, -20, 0, 45)
 toggleBtn.Position = UDim2.new(0, 10, 0, 45)
 toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-toggleBtn.Text = "👻 CLICK TO HIDE"
+toggleBtn.Text = "🎯 DISABLED"
 toggleBtn.Font = Enum.Font.GothamBold
 toggleBtn.TextSize = 18
 toggleBtn.TextColor3 = Color3.new(1, 1, 1)
@@ -113,14 +231,93 @@ local toggleCorner = Instance.new("UICorner")
 toggleCorner.CornerRadius = UDim.new(0, 10)
 toggleCorner.Parent = toggleBtn
 
+local sizeLabel = Instance.new("TextLabel")
+sizeLabel.Size = UDim2.new(1, -20, 0, 25)
+sizeLabel.Position = UDim2.new(0, 10, 0, 100)
+sizeLabel.BackgroundTransparency = 1
+sizeLabel.Text = "Size: 10 studs"
+sizeLabel.Font = Enum.Font.GothamBold
+sizeLabel.TextSize = 14
+sizeLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+sizeLabel.TextXAlignment = Enum.TextXAlignment.Left
+sizeLabel.Parent = mainFrame
+
+local sizeSlider = Instance.new("Frame")
+sizeSlider.Size = UDim2.new(1, -20, 0, 8)
+sizeSlider.Position = UDim2.new(0, 10, 0, 130)
+sizeSlider.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+sizeSlider.BorderSizePixel = 0
+sizeSlider.Parent = mainFrame
+
+local sliderCorner = Instance.new("UICorner")
+sliderCorner.CornerRadius = UDim.new(0.5, 0)
+sliderCorner.Parent = sizeSlider
+
+local sliderFill = Instance.new("Frame")
+sliderFill.Size = UDim2.new(0.2, 0, 1, 0)
+sliderFill.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+sliderFill.BorderSizePixel = 0
+sliderFill.Parent = sizeSlider
+
+local fillCorner = Instance.new("UICorner")
+fillCorner.CornerRadius = UDim.new(0.5, 0)
+fillCorner.Parent = sliderFill
+
+local sliderKnob = Instance.new("TextButton")
+sliderKnob.Size = UDim2.new(0, 16, 0, 16)
+sliderKnob.Position = UDim2.new(0.2, -8, 0.5, -8)
+sliderKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+sliderKnob.Text = ""
+sliderKnob.Parent = sizeSlider
+
+local knobCorner = Instance.new("UICorner")
+knobCorner.CornerRadius = UDim.new(0.5, 0)
+knobCorner.Parent = sliderKnob
+
+local transparentToggle = Instance.new("TextButton")
+transparentToggle.Size = UDim2.new(1, -20, 0, 35)
+transparentToggle.Position = UDim2.new(0, 10, 0, 150)
+transparentToggle.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
+transparentToggle.Text = "👁️ Transparent: ON"
+transparentToggle.Font = Enum.Font.GothamBold
+transparentToggle.TextSize = 13
+transparentToggle.TextColor3 = Color3.new(1, 1, 1)
+transparentToggle.Parent = mainFrame
+
+local transCorner = Instance.new("UICorner")
+transCorner.CornerRadius = UDim.new(0, 8)
+transCorner.Parent = transparentToggle
+
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(1, -20, 0, 70)
+statusLabel.Position = UDim2.new(0, 10, 0, 195)
+statusLabel.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+statusLabel.BorderSizePixel = 0
+statusLabel.Text = "Status: Ready\nMethod: HRP EXPAND\nDamage: Working\n\nSize Range: 2-50 studs"
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.TextSize = 10
+statusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+statusLabel.TextXAlignment = Enum.TextXAlignment.Left
+statusLabel.TextYAlignment = Enum.TextYAlignment.Top
+statusLabel.Parent = mainFrame
+
+local statusCorner2 = Instance.new("UICorner")
+statusCorner2.CornerRadius = UDim.new(0, 8)
+statusCorner2.Parent = statusLabel
+
+local statusPadding = Instance.new("UIPadding")
+statusPadding.PaddingLeft = UDim.new(0, 8)
+statusPadding.PaddingTop = UDim.new(0, 8)
+statusPadding.Parent = statusLabel
+
 local infoLabel = Instance.new("TextLabel")
-infoLabel.Size = UDim2.new(1, -20, 0, 90)
-infoLabel.Position = UDim2.new(0, 10, 0, 105)
+infoLabel.Size = UDim2.new(1, -20, 0, 100)
+infoLabel.Position = UDim2.new(0, 10, 0, 275)
 infoLabel.BackgroundTransparency = 1
-infoLabel.Text = "⚡ COMPLETE INVISIBILITY\n\n✅ Hides ALL body parts\n✅ Hides username display\n✅ Hides accessories\n✅ Tools still work!"
+infoLabel.Text = "⚡ MULTI-UNIVERSAL HITBOX\n\n✅ Expands hit detection\n✅ Works with damage\n✅ Invisible to others\n✅ Multiple methods\n✅ Battlegrounds compatible"
 infoLabel.Font = Enum.Font.Gotham
-infoLabel.TextSize = 10
-infoLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+infoLabel.TextSize = 9
+infoLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
 infoLabel.TextXAlignment = Enum.TextXAlignment.Left
 infoLabel.TextYAlignment = Enum.TextYAlignment.Top
 infoLabel.Parent = mainFrame
@@ -181,178 +378,190 @@ miniBtn.Activated:Connect(function()
 		miniBtn.Visible = false
 		mainFrame.Visible = true
 		mainFrame.Size = UDim2.new(0, 0, 0, 0)
-		TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 220, 0, 200)}):Play()
+		TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 200, 0, 380)}):Play()
 	end
 end)
 
--- COMPLETE INVISIBILITY SYSTEM
-function enableInvisibility()
+-- Size slider
+local sliderDragging = false
+local transparentEnabled = true
+
+sliderKnob.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		sliderDragging = true
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then sliderDragging = false end
+		end)
+	end
+end)
+
+sliderKnob.InputChanged:Connect(function(input)
+	if (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) and sliderDragging then
+		local mousePos = input.Position
+		local sliderPos = sizeSlider.AbsolutePosition
+		local sliderSize = sizeSlider.AbsoluteSize
+		
+		local relativeX = math.clamp((mousePos.X - sliderPos.X) / sliderSize.X, 0, 1)
+		currentSize = math.floor(2 + (relativeX * 48)) -- 2 to 50 studs
+		
+		sliderFill.Size = UDim2.new(relativeX, 0, 1, 0)
+		sliderKnob.Position = UDim2.new(relativeX, -8, 0.5, -8)
+		sizeLabel.Text = "Size: " .. currentSize .. " studs"
+		
+		if hitboxEnabled then
+			enableHitbox()
+		end
+	end
+end)
+
+transparentToggle.Activated:Connect(function()
+	transparentEnabled = not transparentEnabled
+	
+	if transparentEnabled then
+		transparentToggle.Text = "👁️ Transparent: ON"
+		transparentToggle.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
+	else
+		transparentToggle.Text = "👁️ Transparent: OFF"
+		transparentToggle.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+	end
+	
+	if hitboxEnabled then
+		enableHitbox()
+	end
+end)
+
+-- HITBOX EXPANSION SYSTEM
+local originalSizes = {}
+local expandedParts = {}
+
+function enableHitbox()
 	if not character then return end
 	
-	-- HIDE ALL BODY PARTS (Including MeshParts, BaseParts)
-	for _, part in pairs(character:GetChildren()) do
-		if part:IsA("BasePart") or part:IsA("MeshPart") then
-			part.Transparency = 1
-			
-			-- Hide all decals/textures on parts
-			for _, child in pairs(part:GetChildren()) do
-				if child:IsA("Decal") or child:IsA("Texture") then
-					child.Transparency = 1
-				end
+	-- Clear previous
+	for part, _ in pairs(expandedParts) do
+		if part and part.Parent then
+			if originalSizes[part] then
+				part.Size = originalSizes[part]
+				part.Transparency = 1
 			end
 		end
 	end
+	expandedParts = {}
 	
-	-- HIDE ALL ACCESSORIES (Hats, Hair, Face accessories, etc.)
-	for _, accessory in pairs(character:GetChildren()) do
-		if accessory:IsA("Accessory") then
-			local handle = accessory:FindFirstChild("Handle")
-			if handle then
-				handle.Transparency = 1
-				
-				-- Hide textures on accessories
-				for _, child in pairs(handle:GetDescendants()) do
-					if child:IsA("Decal") or child:IsA("Texture") or child:IsA("SurfaceAppearance") then
-						if child:IsA("Decal") or child:IsA("Texture") then
-							child.Transparency = 1
-						elseif child:IsA("SurfaceAppearance") then
-							child.TextureID = ""
-						end
-					end
-					if child:IsA("SpecialMesh") then
-						child.TextureId = ""
-					end
-				end
+	if currentMethod == "hrp" then
+		-- HRP EXPAND (Most Universal)
+		if hrp then
+			if not originalSizes[hrp] then
+				originalSizes[hrp] = hrp.Size
 			end
+			hrp.Size = Vector3.new(currentSize, currentSize, currentSize)
+			hrp.Transparency = transparentEnabled and 1 or 0.5
+			hrp.CanCollide = false
+			expandedParts[hrp] = true
 		end
-	end
-	
-	-- HIDE FACE
-	local head = character:FindFirstChild("Head")
-	if head then
-		-- Hide face decal
-		for _, child in pairs(head:GetChildren()) do
-			if child:IsA("Decal") and child.Name == "face" then
-				child.Transparency = 1
+		
+	elseif currentMethod == "allparts" then
+		-- ALL PARTS (Full Body Hitbox)
+		for _, part in pairs(character:GetChildren()) do
+			if part:IsA("BasePart") then
+				if not originalSizes[part] then
+					originalSizes[part] = part.Size
+				end
+				part.Size = Vector3.new(currentSize, currentSize, currentSize)
+				part.Transparency = transparentEnabled and 1 or 0.5
+				part.CanCollide = false
+				expandedParts[part] = true
 			end
 		end
 		
-		-- Hide mesh texture
-		local mesh = head:FindFirstChildOfClass("SpecialMesh")
-		if mesh then
-			mesh.TextureId = ""
-		end
-	end
-	
-	-- HIDE USERNAME DISPLAY (BillboardGui with username)
-	for _, obj in pairs(character:GetDescendants()) do
-		if obj:IsA("BillboardGui") or obj:IsA("SurfaceGui") then
-			obj.Enabled = false
-		end
-	end
-	
-	-- HIDE SHIRT/PANTS TEXTURES
-	for _, clothing in pairs(character:GetChildren()) do
-		if clothing:IsA("Shirt") or clothing:IsA("Pants") then
-			clothing:Destroy()
-		end
-	end
-	
-	-- HIDE BODY COLORS (Make skin invisible)
-	local bodyColors = character:FindFirstChild("Body Colors")
-	if bodyColors then
-		bodyColors:Destroy()
-	end
-	
-	-- CONTINUOUS MONITORING (Keeps everything hidden)
-	spawn(function()
-		while invisEnabled and character do
-			wait(0.5)
-			
-			-- Re-hide anything that reappears
-			for _, part in pairs(character:GetDescendants()) do
-				if part:IsA("BasePart") or part:IsA("MeshPart") then
-					if part.Transparency < 1 then
-						part.Transparency = 1
-					end
+	elseif currentMethod == "limbs" then
+		-- LIMB ONLY (Arms and Legs)
+		local limbs = {"LeftUpperArm", "LeftLowerArm", "LeftHand", "RightUpperArm", "RightLowerArm", "RightHand",
+			"LeftUpperLeg", "LeftLowerLeg", "LeftFoot", "RightUpperLeg", "RightLowerLeg", "RightFoot",
+			"Left Arm", "Right Arm", "Left Leg", "Right Leg"}
+		
+		for _, limbName in ipairs(limbs) do
+			local limb = character:FindFirstChild(limbName)
+			if limb and limb:IsA("BasePart") then
+				if not originalSizes[limb] then
+					originalSizes[limb] = limb.Size
 				end
-				
-				if part:IsA("Decal") or part:IsA("Texture") then
-					if part.Transparency < 1 then
-						part.Transparency = 1
-					end
-				end
-				
-				if part:IsA("BillboardGui") or part:IsA("SurfaceGui") then
-					if part.Enabled then
-						part.Enabled = false
-					end
-				end
+				limb.Size = Vector3.new(currentSize, currentSize, currentSize)
+				limb.Transparency = transparentEnabled and 1 or 0.5
+				limb.CanCollide = false
+				expandedParts[limb] = true
 			end
 		end
-	end)
+		
+	elseif currentMethod == "battlegrounds" then
+		-- BATTLEGROUNDS (HRP + Torso combo for combat games)
+		if hrp then
+			if not originalSizes[hrp] then
+				originalSizes[hrp] = hrp.Size
+			end
+			hrp.Size = Vector3.new(currentSize, currentSize, currentSize)
+			hrp.Transparency = transparentEnabled and 1 or 0.5
+			hrp.CanCollide = false
+			expandedParts[hrp] = true
+		end
+		
+		local torso = character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso")
+		if torso then
+			if not originalSizes[torso] then
+				originalSizes[torso] = torso.Size
+			end
+			torso.Size = Vector3.new(currentSize * 0.8, currentSize * 0.8, currentSize * 0.8)
+			torso.Transparency = transparentEnabled and 1 or 0.5
+			torso.CanCollide = false
+			expandedParts[torso] = true
+		end
+	end
 	
-	toggleBtn.Text = "👻 INVISIBLE!"
-	toggleBtn.BackgroundColor3 = Color3.fromRGB(150, 100, 255)
-	statusDot.BackgroundColor3 = Color3.fromRGB(150, 100, 255)
-	
-	print("✅ COMPLETE INVISIBILITY ACTIVE!")
-	print("✅ Body parts: HIDDEN")
-	print("✅ Username: HIDDEN")
-	print("✅ Accessories: HIDDEN")
-	print("✅ Face: HIDDEN")
-	print("✅ Tools: STILL FUNCTIONAL!")
+	statusLabel.Text = "Status: ACTIVE ✅\nMethod: " .. currentMethod:upper() .. "\nDamage: Working\n\nSize: " .. currentSize .. " studs"
 end
 
-function disableInvisibility()
+function disableHitbox()
 	if not character then return end
 	
-	-- RESTORE ALL BODY PARTS
-	for _, part in pairs(character:GetDescendants()) do
-		if part:IsA("BasePart") or part:IsA("MeshPart") then
-			part.Transparency = 0
-		end
-		
-		if part:IsA("Decal") or part:IsA("Texture") then
-			part.Transparency = 0
-		end
-		
-		if part:IsA("BillboardGui") or part:IsA("SurfaceGui") then
-			part.Enabled = true
+	-- Restore all sizes
+	for part, size in pairs(originalSizes) do
+		if part and part.Parent then
+			part.Size = size
+			part.Transparency = part.Name == "HumanoidRootPart" and 1 or 0
+			part.CanCollide = true
 		end
 	end
 	
-	-- RESTORE HEAD TRANSPARENCY (Head is normally slightly transparent)
-	if hrp then
-		hrp.Transparency = 1
-	end
+	expandedParts = {}
 	
-	toggleBtn.Text = "👻 CLICK TO HIDE"
-	toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-	statusDot.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-	
-	print("✅ VISIBILITY RESTORED!")
+	statusLabel.Text = "Status: Ready\nMethod: " .. currentMethod:upper() .. "\nDamage: Working\n\nSize Range: 2-50 studs"
 end
 
 -- Main Toggle
 toggleBtn.Activated:Connect(function()
-	invisEnabled = not invisEnabled
+	hitboxEnabled = not hitboxEnabled
 	
-	if invisEnabled then
-		enableInvisibility()
+	if hitboxEnabled then
+		toggleBtn.Text = "🎯 ENABLED"
+		toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+		statusDot.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+		enableHitbox()
 	else
-		disableInvisibility()
+		toggleBtn.Text = "🎯 DISABLED"
+		toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+		statusDot.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+		disableHitbox()
 	end
 end)
 
 print("===========================================")
-print("Multi-Universal Invisible [COMPLETE]")
+print("Multi-Universal Hitbox Expander")
 print("===========================================")
-print("✅ Hides ALL body parts")
-print("✅ Hides username display") 
-print("✅ Hides ALL accessories")
-print("✅ Hides face decal")
-print("✅ Hides clothing/shirts/pants")
-print("✅ Continuous monitoring (stays hidden)")
-print("✅ Tools remain FUNCTIONAL!")
+print("✅ METHOD 1: HRP EXPAND (Universal)")
+print("✅ METHOD 2: ALL PARTS (Full Body)")
+print("✅ METHOD 3: LIMB ONLY (Arms/Legs)")
+print("✅ METHOD 4: BATTLEGROUNDS (Combat)")
+print("✅ Size: 2-50 studs adjustable")
+print("✅ Transparent option")
+print("✅ DAMAGE WORKS!")
 print("===========================================")
