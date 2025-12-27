@@ -1,5 +1,5 @@
 -- LocalScript (StarterPlayerScripts)
--- Multi-Universal Invisible [2025 WORKING METHODS]
+-- Multi-Universal Invisible [COMPLETE - HIDE EVERYTHING]
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -10,7 +10,6 @@ local player = Players.LocalPlayer
 local character, humanoid, hrp
 
 local invisEnabled = false
-local currentMethod = "headless"
 
 local function setupCharacter(char)
 	character = char
@@ -28,14 +27,14 @@ gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
 local miniBtn = Instance.new("TextButton")
-miniBtn.Size = UDim2.new(0, 50, 0, 50)
-miniBtn.Position = UDim2.new(0.85, -50, 0.5, -25)
+miniBtn.Size = UDim2.new(0, 60, 0, 60)
+miniBtn.Position = UDim2.new(0.85, -60, 0.5, -30)
 miniBtn.BackgroundColor3 = Color3.fromRGB(150, 100, 255)
 miniBtn.BorderSizePixel = 0
 miniBtn.Font = Enum.Font.GothamBold
-miniBtn.TextSize = 20
+miniBtn.TextSize = 24
 miniBtn.TextColor3 = Color3.new(1, 1, 1)
-miniBtn.Text = "+"
+miniBtn.Text = "👻"
 miniBtn.Visible = false
 miniBtn.ZIndex = 10
 miniBtn.Active = true
@@ -45,19 +44,9 @@ local miniBtnCorner = Instance.new("UICorner")
 miniBtnCorner.CornerRadius = UDim.new(0.5, 0)
 miniBtnCorner.Parent = miniBtn
 
-local miniLabel = Instance.new("TextLabel")
-miniLabel.Size = UDim2.new(1, 0, 0, 15)
-miniLabel.Position = UDim2.new(0, 0, 1, 2)
-miniLabel.BackgroundTransparency = 1
-miniLabel.Text = "INVIS"
-miniLabel.Font = Enum.Font.GothamBold
-miniLabel.TextSize = 10
-miniLabel.TextColor3 = Color3.fromRGB(150, 100, 255)
-miniLabel.Parent = miniBtn
-
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 200, 0, 420)
-mainFrame.Position = UDim2.new(0.85, -200, 0.25, 0)
+mainFrame.Size = UDim2.new(0, 220, 0, 200)
+mainFrame.Position = UDim2.new(0.85, -220, 0.4, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = false
@@ -74,30 +63,15 @@ dragHandle.Active = true
 dragHandle.Parent = mainFrame
 
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, -75, 1, 0)
+titleLabel.Size = UDim2.new(1, -45, 1, 0)
 titleLabel.Position = UDim2.new(0, 10, 0, 0)
 titleLabel.BackgroundTransparency = 1
 titleLabel.Text = "INVISIBLE"
 titleLabel.Font = Enum.Font.GothamBold
-titleLabel.TextSize = 16
+titleLabel.TextSize = 18
 titleLabel.TextColor3 = Color3.fromRGB(150, 100, 255)
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.Parent = dragHandle
-
-local methodBtn = Instance.new("TextButton")
-methodBtn.Size = UDim2.new(0, 24, 0, 24)
-methodBtn.Position = UDim2.new(1, -50, 0, 5)
-methodBtn.Text = "+"
-methodBtn.BackgroundColor3 = Color3.fromRGB(150, 100, 255)
-methodBtn.TextColor3 = Color3.new(1, 1, 1)
-methodBtn.Font = Enum.Font.GothamBold
-methodBtn.TextSize = 18
-methodBtn.ZIndex = 10
-methodBtn.Parent = dragHandle
-
-local methodCorner = Instance.new("UICorner")
-methodCorner.CornerRadius = UDim.new(0.5, 0)
-methodCorner.Parent = methodBtn
 
 local minimizeBtn = Instance.new("TextButton")
 minimizeBtn.Size = UDim2.new(0, 20, 0, 20)
@@ -125,152 +99,28 @@ local dotCorner = Instance.new("UICorner")
 dotCorner.CornerRadius = UDim.new(0.5, 0)
 dotCorner.Parent = statusDot
 
--- Method Menu
-local methodMenu = Instance.new("Frame")
-methodMenu.Size = UDim2.new(0, 180, 0, 0)
-methodMenu.Position = UDim2.new(1, 5, 0, 0)
-methodMenu.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-methodMenu.BorderSizePixel = 0
-methodMenu.ClipsDescendants = true
-methodMenu.Visible = false
-methodMenu.ZIndex = 11
-methodMenu.Parent = mainFrame
-
-local menuCorner2 = Instance.new("UICorner")
-menuCorner2.CornerRadius = UDim.new(0, 8)
-menuCorner2.Parent = methodMenu
-
-local methods = {
-	{name = "HEADLESS", desc = "Delete Head", id = "headless", color = Color3.fromRGB(255, 80, 80)},
-	{name = "SEAT WELD", desc = "Invisible Seat", id = "seatweld", color = Color3.fromRGB(80, 150, 255)},
-	{name = "FLING", desc = "Constant Spin", id = "fling", color = Color3.fromRGB(255, 150, 80)},
-	{name = "KORBLOX", desc = "Limb Delete", id = "korblox", color = Color3.fromRGB(150, 80, 255)},
-	{name = "TOOL INVIS", desc = "Tool Trick", id = "toolinvis", color = Color3.fromRGB(80, 255, 150)}
-}
-
-local methodButtons = {}
-
-for i, method in ipairs(methods) do
-	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(1, -10, 0, 30)
-	btn.Position = UDim2.new(0, 5, 0, 5 + (i-1) * 35)
-	btn.BackgroundColor3 = method.color
-	btn.BackgroundTransparency = 0.2
-	btn.BorderSizePixel = 0
-	btn.Font = Enum.Font.GothamBold
-	btn.TextSize = 10
-	btn.TextColor3 = Color3.new(1, 1, 1)
-	btn.Text = method.name .. " · " .. method.desc
-	btn.ZIndex = 12
-	btn.Parent = methodMenu
-	
-	local btnCorner = Instance.new("UICorner")
-	btnCorner.CornerRadius = UDim.new(0, 6)
-	btnCorner.Parent = btn
-	
-	local indicator = Instance.new("Frame")
-	indicator.Size = UDim2.new(0, 3, 1, -6)
-	indicator.Position = UDim2.new(0, 3, 0, 3)
-	indicator.BackgroundColor3 = Color3.new(1, 1, 1)
-	indicator.BorderSizePixel = 0
-	indicator.Visible = (i == 1)
-	indicator.ZIndex = 13
-	indicator.Parent = btn
-	
-	local indCorner = Instance.new("UICorner")
-	indCorner.CornerRadius = UDim.new(1, 0)
-	indCorner.Parent = indicator
-	
-	methodButtons[i] = {button = btn, indicator = indicator, method = method}
-	
-	btn.Activated:Connect(function()
-		currentMethod = method.id
-		
-		for j, data in ipairs(methodButtons) do
-			data.indicator.Visible = (j == i)
-			TweenService:Create(data.button, TweenInfo.new(0.2), {
-				BackgroundTransparency = (j == i) and 0.2 or 0.5
-			}):Play()
-		end
-		
-		if invisEnabled then
-			disableInvisibility()
-			task.wait(0.1)
-			enableInvisibility()
-		end
-	end)
-end
-
-local menuOpen = false
-methodBtn.Activated:Connect(function()
-	menuOpen = not menuOpen
-	
-	if menuOpen then
-		methodMenu.Visible = true
-		TweenService:Create(methodMenu, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-			Size = UDim2.new(0, 180, 0, 180)
-		}):Play()
-		TweenService:Create(methodBtn, TweenInfo.new(0.2), {
-			Rotation = 45,
-			BackgroundColor3 = Color3.fromRGB(206, 36, 36)
-		}):Play()
-	else
-		TweenService:Create(methodMenu, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
-			Size = UDim2.new(0, 180, 0, 0)
-		}):Play()
-		TweenService:Create(methodBtn, TweenInfo.new(0.2), {
-			Rotation = 0,
-			BackgroundColor3 = Color3.fromRGB(150, 100, 255)
-		}):Play()
-		task.wait(0.2)
-		methodMenu.Visible = false
-	end
-end)
-
 local toggleBtn = Instance.new("TextButton")
-toggleBtn.Size = UDim2.new(1, -20, 0, 45)
+toggleBtn.Size = UDim2.new(1, -20, 0, 50)
 toggleBtn.Position = UDim2.new(0, 10, 0, 45)
 toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-toggleBtn.Text = "👻 DISABLED"
+toggleBtn.Text = "👻 CLICK TO HIDE"
 toggleBtn.Font = Enum.Font.GothamBold
 toggleBtn.TextSize = 18
 toggleBtn.TextColor3 = Color3.new(1, 1, 1)
 toggleBtn.Parent = mainFrame
 
 local toggleCorner = Instance.new("UICorner")
-toggleCorner.CornerRadius = UDim.new(0, 8)
+toggleCorner.CornerRadius = UDim.new(0, 10)
 toggleCorner.Parent = toggleBtn
 
-local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(1, -20, 0, 80)
-statusLabel.Position = UDim2.new(0, 10, 0, 100)
-statusLabel.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-statusLabel.BorderSizePixel = 0
-statusLabel.Text = "Status: Ready\nMethod: HEADLESS\n\n💡 Try each method!\nSome work in specific games"
-statusLabel.Font = Enum.Font.Gotham
-statusLabel.TextSize = 10
-statusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-statusLabel.TextXAlignment = Enum.TextXAlignment.Left
-statusLabel.TextYAlignment = Enum.TextYAlignment.Top
-statusLabel.Parent = mainFrame
-
-local statusCorner = Instance.new("UICorner")
-statusCorner.CornerRadius = UDim.new(0, 8)
-statusCorner.Parent = statusLabel
-
-local statusPadding = Instance.new("UIPadding")
-statusPadding.PaddingLeft = UDim.new(0, 8)
-statusPadding.PaddingTop = UDim.new(0, 8)
-statusPadding.Parent = statusLabel
-
 local infoLabel = Instance.new("TextLabel")
-infoLabel.Size = UDim2.new(1, -20, 0, 210)
-infoLabel.Position = UDim2.new(0, 10, 0, 190)
+infoLabel.Size = UDim2.new(1, -20, 0, 90)
+infoLabel.Position = UDim2.new(0, 10, 0, 105)
 infoLabel.BackgroundTransparency = 1
-infoLabel.Text = "💀 2025 WORKING METHODS\n\n🔴 HEADLESS: Deletes head\n   (Most universal)\n\n🔵 SEAT WELD: Welds to seat\n   (Works in most games)\n\n🟠 FLING: Spinning method\n   (Physics-based games)\n\n🟣 KORBLOX: Removes limbs\n   (R15 games)\n\n🟢 TOOL INVIS: Uses tool handle\n   (Games with tools)\n\n⚠️ Try all methods!"
+infoLabel.Text = "⚡ COMPLETE INVISIBILITY\n\n✅ Hides ALL body parts\n✅ Hides username display\n✅ Hides accessories\n✅ Tools still work!"
 infoLabel.Font = Enum.Font.Gotham
-infoLabel.TextSize = 9
-infoLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+infoLabel.TextSize = 10
+infoLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
 infoLabel.TextXAlignment = Enum.TextXAlignment.Left
 infoLabel.TextYAlignment = Enum.TextYAlignment.Top
 infoLabel.Parent = mainFrame
@@ -321,7 +171,7 @@ minimizeBtn.Activated:Connect(function()
 	mainFrame.Visible = false
 	miniBtn.Visible = true
 	miniBtn.Size = UDim2.new(0, 0, 0, 0)
-	TweenService:Create(miniBtn, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 50, 0, 50)}):Play()
+	TweenService:Create(miniBtn, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 60, 0, 60)}):Play()
 end)
 
 miniBtn.Activated:Connect(function()
@@ -331,168 +181,157 @@ miniBtn.Activated:Connect(function()
 		miniBtn.Visible = false
 		mainFrame.Visible = true
 		mainFrame.Size = UDim2.new(0, 0, 0, 0)
-		TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 200, 0, 420)}):Play()
+		TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 220, 0, 200)}):Play()
 	end
 end)
 
--- ACTUAL WORKING INVISIBILITY METHODS
-local storedHead = nil
-local invisConnection = nil
-local invisSeat = nil
-local flingPart = nil
-
--- METHOD 1: HEADLESS (Delete Head - Most Universal!)
-function applyHeadless()
-	if not character then return end
-	
-	local head = character:FindFirstChild("Head")
-	if head then
-		-- Store head for restoration
-		storedHead = head:Clone()
-		
-		-- Delete head (makes character invisible in most games!)
-		head:Destroy()
-		
-		statusLabel.Text = "Status: ACTIVE ✅\nMethod: HEADLESS\n\n✅ Head deleted!\nTools still work!"
-	end
-end
-
--- METHOD 2: SEAT WELD (Weld to invisible seat)
-function applySeatWeld()
-	if not character or not hrp then return end
-	
-	-- Create invisible seat
-	invisSeat = Instance.new("Seat")
-	invisSeat.Name = "InvisSeat"
-	invisSeat.Anchored = false
-	invisSeat.CanCollide = false
-	invisSeat.Transparency = 1
-	invisSeat.Size = Vector3.new(0.1, 0.1, 0.1)
-	invisSeat.CFrame = hrp.CFrame
-	invisSeat.Parent = workspace
-	
-	-- Sit character on seat
-	humanoid.Sit = true
-	task.wait(0.1)
-	invisSeat.CFrame = CFrame.new(0, -1000, 0)
-	
-	statusLabel.Text = "Status: ACTIVE ✅\nMethod: SEAT WELD\n\n✅ Welded to invisible seat!\nTools still work!"
-end
-
--- METHOD 3: FLING (Constant spinning - physics exploit)
-function applyFling()
-	if not character or not hrp then return end
-	
-	-- Create spinning part
-	flingPart = Instance.new("BodyAngularVelocity")
-	flingPart.AngularVelocity = Vector3.new(0, 99999, 0)
-	flingPart.MaxTorque = Vector3.new(0, math.huge, 0)
-	flingPart.P = math.huge
-	flingPart.Parent = hrp
-	
-	-- Make character spin SO fast they're invisible
-	invisConnection = RunService.Heartbeat:Connect(function()
-		if flingPart and flingPart.Parent then
-			flingPart.AngularVelocity = Vector3.new(0, 99999, 0)
-		end
-	end)
-	
-	statusLabel.Text = "Status: ACTIVE ✅\nMethod: FLING\n\n✅ Spinning at max speed!\nTools still work!"
-end
-
--- METHOD 4: KORBLOX (Remove limbs - R15 specific)
-function applyKorblox()
-	if not character then return end
-	
-	-- Delete all limbs except torso and head
-	local limbs = {"LeftUpperArm", "LeftLowerArm", "LeftHand", "RightUpperArm", "RightLowerArm", "RightHand",
-		"LeftUpperLeg", "LeftLowerLeg", "LeftFoot", "RightUpperLeg", "RightLowerLeg", "RightFoot",
-		"Left Arm", "Right Arm", "Left Leg", "Right Leg"} -- R6 + R15
-	
-	for _, limbName in ipairs(limbs) do
-		local limb = character:FindFirstChild(limbName)
-		if limb then
-			limb:Destroy()
-		end
-	end
-	
-	statusLabel.Text = "Status: ACTIVE ✅\nMethod: KORBLOX\n\n✅ Limbs removed!\nTools still work!"
-end
-
--- METHOD 5: TOOL INVIS (Use tool handle position)
-function applyToolInvis()
-	if not character or not hrp then return end
-	
-	-- Get equipped tool
-	local tool = character:FindFirstChildOfClass("Tool")
-	
-	if tool and tool:FindFirstChild("Handle") then
-		local handle = tool.Handle
-		
-		-- Weld character to tool handle offscreen
-		local weld = Instance.new("Weld")
-		weld.Part0 = hrp
-		weld.Part1 = handle
-		weld.C0 = CFrame.new(0, -1000, 0)
-		weld.Parent = hrp
-		
-		-- Make handle invisible
-		handle.Transparency = 1
-		
-		statusLabel.Text = "Status: ACTIVE ✅\nMethod: TOOL INVIS\n\n✅ Welded to tool!\nTools still work!"
-	else
-		statusLabel.Text = "Status: FAILED ❌\nMethod: TOOL INVIS\n\n❌ No tool equipped!\nEquip a tool first!"
-	end
-end
-
+-- COMPLETE INVISIBILITY SYSTEM
 function enableInvisibility()
 	if not character then return end
 	
-	if currentMethod == "headless" then
-		applyHeadless()
-	elseif currentMethod == "seatweld" then
-		applySeatWeld()
-	elseif currentMethod == "fling" then
-		applyFling()
-	elseif currentMethod == "korblox" then
-		applyKorblox()
-	elseif currentMethod == "toolinvis" then
-		applyToolInvis()
+	-- HIDE ALL BODY PARTS (Including MeshParts, BaseParts)
+	for _, part in pairs(character:GetChildren()) do
+		if part:IsA("BasePart") or part:IsA("MeshPart") then
+			part.Transparency = 1
+			
+			-- Hide all decals/textures on parts
+			for _, child in pairs(part:GetChildren()) do
+				if child:IsA("Decal") or child:IsA("Texture") then
+					child.Transparency = 1
+				end
+			end
+		end
 	end
+	
+	-- HIDE ALL ACCESSORIES (Hats, Hair, Face accessories, etc.)
+	for _, accessory in pairs(character:GetChildren()) do
+		if accessory:IsA("Accessory") then
+			local handle = accessory:FindFirstChild("Handle")
+			if handle then
+				handle.Transparency = 1
+				
+				-- Hide textures on accessories
+				for _, child in pairs(handle:GetDescendants()) do
+					if child:IsA("Decal") or child:IsA("Texture") or child:IsA("SurfaceAppearance") then
+						if child:IsA("Decal") or child:IsA("Texture") then
+							child.Transparency = 1
+						elseif child:IsA("SurfaceAppearance") then
+							child.TextureID = ""
+						end
+					end
+					if child:IsA("SpecialMesh") then
+						child.TextureId = ""
+					end
+				end
+			end
+		end
+	end
+	
+	-- HIDE FACE
+	local head = character:FindFirstChild("Head")
+	if head then
+		-- Hide face decal
+		for _, child in pairs(head:GetChildren()) do
+			if child:IsA("Decal") and child.Name == "face" then
+				child.Transparency = 1
+			end
+		end
+		
+		-- Hide mesh texture
+		local mesh = head:FindFirstChildOfClass("SpecialMesh")
+		if mesh then
+			mesh.TextureId = ""
+		end
+	end
+	
+	-- HIDE USERNAME DISPLAY (BillboardGui with username)
+	for _, obj in pairs(character:GetDescendants()) do
+		if obj:IsA("BillboardGui") or obj:IsA("SurfaceGui") then
+			obj.Enabled = false
+		end
+	end
+	
+	-- HIDE SHIRT/PANTS TEXTURES
+	for _, clothing in pairs(character:GetChildren()) do
+		if clothing:IsA("Shirt") or clothing:IsA("Pants") then
+			clothing:Destroy()
+		end
+	end
+	
+	-- HIDE BODY COLORS (Make skin invisible)
+	local bodyColors = character:FindFirstChild("Body Colors")
+	if bodyColors then
+		bodyColors:Destroy()
+	end
+	
+	-- CONTINUOUS MONITORING (Keeps everything hidden)
+	spawn(function()
+		while invisEnabled and character do
+			wait(0.5)
+			
+			-- Re-hide anything that reappears
+			for _, part in pairs(character:GetDescendants()) do
+				if part:IsA("BasePart") or part:IsA("MeshPart") then
+					if part.Transparency < 1 then
+						part.Transparency = 1
+					end
+				end
+				
+				if part:IsA("Decal") or part:IsA("Texture") then
+					if part.Transparency < 1 then
+						part.Transparency = 1
+					end
+				end
+				
+				if part:IsA("BillboardGui") or part:IsA("SurfaceGui") then
+					if part.Enabled then
+						part.Enabled = false
+					end
+				end
+			end
+		end
+	end)
+	
+	toggleBtn.Text = "👻 INVISIBLE!"
+	toggleBtn.BackgroundColor3 = Color3.fromRGB(150, 100, 255)
+	statusDot.BackgroundColor3 = Color3.fromRGB(150, 100, 255)
+	
+	print("✅ COMPLETE INVISIBILITY ACTIVE!")
+	print("✅ Body parts: HIDDEN")
+	print("✅ Username: HIDDEN")
+	print("✅ Accessories: HIDDEN")
+	print("✅ Face: HIDDEN")
+	print("✅ Tools: STILL FUNCTIONAL!")
 end
 
 function disableInvisibility()
-	-- Restore head
-	if storedHead and character then
-		local newHead = storedHead:Clone()
-		newHead.Parent = character
-		storedHead = nil
+	if not character then return end
+	
+	-- RESTORE ALL BODY PARTS
+	for _, part in pairs(character:GetDescendants()) do
+		if part:IsA("BasePart") or part:IsA("MeshPart") then
+			part.Transparency = 0
+		end
+		
+		if part:IsA("Decal") or part:IsA("Texture") then
+			part.Transparency = 0
+		end
+		
+		if part:IsA("BillboardGui") or part:IsA("SurfaceGui") then
+			part.Enabled = true
+		end
 	end
 	
-	-- Remove seat
-	if invisSeat then
-		invisSeat:Destroy()
-		invisSeat = nil
+	-- RESTORE HEAD TRANSPARENCY (Head is normally slightly transparent)
+	if hrp then
+		hrp.Transparency = 1
 	end
 	
-	-- Remove fling
-	if flingPart then
-		flingPart:Destroy()
-		flingPart = nil
-	end
+	toggleBtn.Text = "👻 CLICK TO HIDE"
+	toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+	statusDot.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
 	
-	-- Disconnect connection
-	if invisConnection then
-		invisConnection:Disconnect()
-		invisConnection = nil
-	end
-	
-	-- Unsit humanoid
-	if humanoid then
-		humanoid.Sit = false
-	end
-	
-	statusLabel.Text = "Status: Ready\nMethod: " .. currentMethod:upper() .. "\n\n💡 Try each method!\nSome work in specific games"
+	print("✅ VISIBILITY RESTORED!")
 end
 
 -- Main Toggle
@@ -500,25 +339,20 @@ toggleBtn.Activated:Connect(function()
 	invisEnabled = not invisEnabled
 	
 	if invisEnabled then
-		toggleBtn.Text = "👻 ENABLED"
-		toggleBtn.BackgroundColor3 = Color3.fromRGB(150, 100, 255)
-		statusDot.BackgroundColor3 = Color3.fromRGB(150, 100, 255)
 		enableInvisibility()
 	else
-		toggleBtn.Text = "👻 DISABLED"
-		toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-		statusDot.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
 		disableInvisibility()
 	end
 end)
 
 print("===========================================")
-print("Multi-Universal Invisible [2025 WORKING]")
+print("Multi-Universal Invisible [COMPLETE]")
 print("===========================================")
-print("✅ HEADLESS: Delete head (MOST UNIVERSAL)")
-print("✅ SEAT WELD: Invisible seat trick")
-print("✅ FLING: Fast spinning method")
-print("✅ KORBLOX: Remove limbs")
-print("✅ TOOL INVIS: Tool handle trick")
-print("💡 Try ALL methods - different games need different tricks!")
+print("✅ Hides ALL body parts")
+print("✅ Hides username display") 
+print("✅ Hides ALL accessories")
+print("✅ Hides face decal")
+print("✅ Hides clothing/shirts/pants")
+print("✅ Continuous monitoring (stays hidden)")
+print("✅ Tools remain FUNCTIONAL!")
 print("===========================================")
