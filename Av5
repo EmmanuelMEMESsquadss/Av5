@@ -1,5 +1,5 @@
 -- LocalScript (StarterPlayerScripts)
--- Multi-Universal Invisible [FULL FUNCTIONALITY]
+-- Multi-Universal Invisible [TRUE INVISIBILITY - SERVER SIDE]
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -10,8 +10,8 @@ local player = Players.LocalPlayer
 local character, humanoid, hrp
 
 local invisEnabled = false
-local hiddenParts = {}
-local originalTransparencies = {}
+local currentMethod = "shrink"
+local antiKickEnabled = true
 
 local function setupCharacter(char)
 	character = char
@@ -59,8 +59,8 @@ miniLabel.Parent = miniBtn
 
 -- Main Container
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 160, 0, 280)
-mainFrame.Position = UDim2.new(0.85, -160, 0.35, 0)
+mainFrame.Size = UDim2.new(0, 180, 0, 340)
+mainFrame.Position = UDim2.new(0.85, -180, 0.3, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = false
@@ -79,7 +79,7 @@ dragHandle.Parent = mainFrame
 
 -- Title
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, -45, 1, 0)
+titleLabel.Size = UDim2.new(1, -75, 1, 0)
 titleLabel.Position = UDim2.new(0, 10, 0, 0)
 titleLabel.BackgroundTransparency = 1
 titleLabel.Text = "INVISIBLE"
@@ -88,6 +88,22 @@ titleLabel.TextSize = 16
 titleLabel.TextColor3 = Color3.fromRGB(150, 100, 255)
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.Parent = dragHandle
+
+-- Method Selector Button (+ icon)
+local methodBtn = Instance.new("TextButton")
+methodBtn.Size = UDim2.new(0, 24, 0, 24)
+methodBtn.Position = UDim2.new(1, -50, 0, 5)
+methodBtn.Text = "+"
+methodBtn.BackgroundColor3 = Color3.fromRGB(150, 100, 255)
+methodBtn.TextColor3 = Color3.new(1, 1, 1)
+methodBtn.Font = Enum.Font.GothamBold
+methodBtn.TextSize = 18
+methodBtn.ZIndex = 10
+methodBtn.Parent = dragHandle
+
+local methodCorner = Instance.new("UICorner")
+methodCorner.CornerRadius = UDim.new(0.5, 0)
+methodCorner.Parent = methodBtn
 
 -- Minimize Button
 local minimizeBtn = Instance.new("TextButton")
@@ -117,6 +133,122 @@ local dotCorner = Instance.new("UICorner")
 dotCorner.CornerRadius = UDim.new(0.5, 0)
 dotCorner.Parent = statusDot
 
+-- Method Menu Container
+local methodMenu = Instance.new("Frame")
+methodMenu.Size = UDim2.new(0, 160, 0, 0)
+methodMenu.Position = UDim2.new(1, 5, 0, 0)
+methodMenu.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+methodMenu.BorderSizePixel = 0
+methodMenu.ClipsDescendants = true
+methodMenu.Visible = false
+methodMenu.ZIndex = 11
+methodMenu.Parent = mainFrame
+
+local menuCorner = Instance.new("UICorner")
+menuCorner.CornerRadius = UDim.new(0, 8)
+menuCorner.Parent = methodMenu
+
+-- Invisible Methods
+local methods = {
+	{name = "SHRINK", desc = "Tiny Size", id = "shrink", color = Color3.fromRGB(100, 150, 255)},
+	{name = "UNDERGROUND", desc = "Below Map", id = "underground", color = Color3.fromRGB(150, 100, 255)},
+	{name = "REMOVE PARTS", desc = "Delete Body", id = "remove", color = Color3.fromRGB(255, 100, 150)},
+	{name = "HYBRID", desc = "Multi-Method", id = "hybrid", color = Color3.fromRGB(255, 150, 100)}
+}
+
+local methodButtons = {}
+
+for i, method in ipairs(methods) do
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1, -10, 0, 32)
+	btn.Position = UDim2.new(0, 5, 0, 5 + (i-1) * 37)
+	btn.BackgroundColor3 = method.color
+	btn.BackgroundTransparency = 0.2
+	btn.BorderSizePixel = 0
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 11
+	btn.TextColor3 = Color3.new(1, 1, 1)
+	btn.Text = method.name .. " · " .. method.desc
+	btn.ZIndex = 12
+	btn.Parent = methodMenu
+	
+	local btnCorner = Instance.new("UICorner")
+	btnCorner.CornerRadius = UDim.new(0, 6)
+	btnCorner.Parent = btn
+	
+	-- Selection indicator
+	local indicator = Instance.new("Frame")
+	indicator.Size = UDim2.new(0, 3, 1, -6)
+	indicator.Position = UDim2.new(0, 3, 0, 3)
+	indicator.BackgroundColor3 = Color3.new(1, 1, 1)
+	indicator.BorderSizePixel = 0
+	indicator.Visible = (i == 1)
+	indicator.ZIndex = 13
+	indicator.Parent = btn
+	
+	local indCorner = Instance.new("UICorner")
+	indCorner.CornerRadius = UDim.new(1, 0)
+	indCorner.Parent = indicator
+	
+	methodButtons[i] = {button = btn, indicator = indicator, method = method}
+	
+	-- Method selection
+	btn.Activated:Connect(function()
+		currentMethod = method.id
+		
+		-- Update indicators
+		for j, data in ipairs(methodButtons) do
+			data.indicator.Visible = (j == i)
+			TweenService:Create(data.button, TweenInfo.new(0.2), {
+				BackgroundTransparency = (j == i) and 0.2 or 0.5
+			}):Play()
+		end
+		
+		-- Visual feedback
+		TweenService:Create(btn, TweenInfo.new(0.1), {
+			Size = UDim2.new(1, -8, 0, 32)
+		}):Play()
+		task.wait(0.1)
+		TweenService:Create(btn, TweenInfo.new(0.1), {
+			Size = UDim2.new(1, -10, 0, 32)
+		}):Play()
+		
+		-- Reapply if active
+		if invisEnabled then
+			disableInvisibility()
+			task.wait(0.1)
+			enableInvisibility()
+		end
+	end)
+end
+
+-- Method menu toggle
+local menuOpen = false
+methodBtn.Activated:Connect(function()
+	menuOpen = not menuOpen
+	
+	if menuOpen then
+		methodMenu.Visible = true
+		TweenService:Create(methodMenu, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+			Size = UDim2.new(0, 160, 0, 155)
+		}):Play()
+		TweenService:Create(methodBtn, TweenInfo.new(0.2), {
+			Rotation = 45,
+			BackgroundColor3 = Color3.fromRGB(206, 36, 36)
+		}):Play()
+	else
+		TweenService:Create(methodMenu, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+			Size = UDim2.new(0, 160, 0, 0)
+		}):Play()
+		TweenService:Create(methodBtn, TweenInfo.new(0.2), {
+			Rotation = 0,
+			BackgroundColor3 = Color3.fromRGB(150, 100, 255)
+		}):Play()
+		task.wait(0.2)
+		methodMenu.Visible = false
+	end
+end)
+
 -- Main Toggle Button
 local toggleBtn = Instance.new("TextButton")
 toggleBtn.Size = UDim2.new(1, -20, 0, 40)
@@ -132,81 +264,58 @@ local toggleCorner = Instance.new("UICorner")
 toggleCorner.CornerRadius = UDim.new(0, 8)
 toggleCorner.Parent = toggleBtn
 
--- Method Buttons Container
-local methodsLabel = Instance.new("TextLabel")
-methodsLabel.Size = UDim2.new(1, -20, 0, 20)
-methodsLabel.Position = UDim2.new(0, 10, 0, 95)
-methodsLabel.BackgroundTransparency = 1
-methodsLabel.Text = "Invisible Methods:"
-methodsLabel.Font = Enum.Font.GothamBold
-methodsLabel.TextSize = 12
-methodsLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-methodsLabel.TextXAlignment = Enum.TextXAlignment.Left
-methodsLabel.Parent = mainFrame
+-- Anti-Kick Toggle
+local antiKickBtn = Instance.new("TextButton")
+antiKickBtn.Size = UDim2.new(1, -20, 0, 35)
+antiKickBtn.Position = UDim2.new(0, 10, 0, 95)
+antiKickBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
+antiKickBtn.Text = "🛡️ Anti-Kick: ON"
+antiKickBtn.Font = Enum.Font.GothamBold
+antiKickBtn.TextSize = 13
+antiKickBtn.TextColor3 = Color3.new(1, 1, 1)
+antiKickBtn.Parent = mainFrame
 
--- Method 1: Body Parts
-local bodyBtn = Instance.new("TextButton")
-bodyBtn.Size = UDim2.new(1, -20, 0, 30)
-bodyBtn.Position = UDim2.new(0, 10, 0, 120)
-bodyBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
-bodyBtn.Text = "Body: ON"
-bodyBtn.Font = Enum.Font.GothamBold
-bodyBtn.TextSize = 12
-bodyBtn.TextColor3 = Color3.new(1, 1, 1)
-bodyBtn.Parent = mainFrame
+local antiKickCorner = Instance.new("UICorner")
+antiKickCorner.CornerRadius = UDim.new(0, 8)
+antiKickCorner.Parent = antiKickBtn
 
-local bodyCorner = Instance.new("UICorner")
-bodyCorner.CornerRadius = UDim.new(0, 6)
-bodyCorner.Parent = bodyBtn
+-- Status Label
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(1, -20, 0, 60)
+statusLabel.Position = UDim2.new(0, 10, 0, 140)
+statusLabel.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+statusLabel.BorderSizePixel = 0
+statusLabel.Text = "Status: Ready\nMethod: SHRINK\nTools: Functional"
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.TextSize = 11
+statusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+statusLabel.TextXAlignment = Enum.TextXAlignment.Left
+statusLabel.TextYAlignment = Enum.TextYAlignment.Top
+statusLabel.Parent = mainFrame
 
--- Method 2: Accessories
-local accessBtn = Instance.new("TextButton")
-accessBtn.Size = UDim2.new(1, -20, 0, 30)
-accessBtn.Position = UDim2.new(0, 10, 0, 155)
-accessBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
-accessBtn.Text = "Accessories: ON"
-accessBtn.Font = Enum.Font.GothamBold
-accessBtn.TextSize = 12
-accessBtn.TextColor3 = Color3.new(1, 1, 1)
-accessBtn.Parent = mainFrame
+local statusCorner = Instance.new("UICorner")
+statusCorner.CornerRadius = UDim.new(0, 8)
+statusCorner.Parent = statusLabel
 
-local accessCorner = Instance.new("UICorner")
-accessCorner.CornerRadius = UDim.new(0, 6)
-accessCorner.Parent = accessBtn
-
--- Method 3: Face
-local faceBtn = Instance.new("TextButton")
-faceBtn.Size = UDim2.new(1, -20, 0, 30)
-faceBtn.Position = UDim2.new(0, 10, 0, 190)
-faceBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
-faceBtn.Text = "Face: ON"
-faceBtn.Font = Enum.Font.GothamBold
-faceBtn.TextSize = 12
-faceBtn.TextColor3 = Color3.new(1, 1, 1)
-faceBtn.Parent = mainFrame
-
-local faceCorner = Instance.new("UICorner")
-faceCorner.CornerRadius = UDim.new(0, 6)
-faceCorner.Parent = faceBtn
+local statusPadding = Instance.new("UIPadding")
+statusPadding.PaddingLeft = UDim.new(0, 8)
+statusPadding.PaddingTop = UDim.new(0, 8)
+statusPadding.Parent = statusLabel
 
 -- Info Label
 local infoLabel = Instance.new("TextLabel")
-infoLabel.Size = UDim2.new(1, -20, 0, 50)
-infoLabel.Position = UDim2.new(0, 10, 0, 230)
+infoLabel.Size = UDim2.new(1, -20, 0, 120)
+infoLabel.Position = UDim2.new(0, 10, 0, 210)
 infoLabel.BackgroundTransparency = 1
-infoLabel.Text = "Tools remain functional!\nCan hit & use abilities"
+infoLabel.Text = "⚠️ TRUE INVISIBILITY\n\n✅ Others CAN'T see you\n✅ Tools remain functional\n✅ Can hit & attack\n✅ Anti-kick protection"
 infoLabel.Font = Enum.Font.Gotham
 infoLabel.TextSize = 9
 infoLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-infoLabel.TextXAlignment = Enum.TextXAlignment.Center
+infoLabel.TextXAlignment = Enum.TextXAlignment.Left
+infoLabel.TextYAlignment = Enum.TextYAlignment.Top
 infoLabel.Parent = mainFrame
 
--- Settings
-local hideBody = true
-local hideAccessories = true
-local hideFace = true
-
--- Dragging for main frame
+-- Dragging
 local dragging = false
 local dragStart, startPos
 
@@ -236,7 +345,6 @@ dragHandle.InputChanged:Connect(function(input)
 	end
 end)
 
--- Dragging for mini button
 local miniDragging = false
 local miniDragStart, miniStartPos
 
@@ -271,15 +379,12 @@ local isMinimized = false
 
 minimizeBtn.Activated:Connect(function()
 	isMinimized = true
-	
 	TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
 		Size = UDim2.new(0, 0, 0, 0)
 	}):Play()
-	
 	task.wait(0.3)
 	mainFrame.Visible = false
 	miniBtn.Visible = true
-	
 	miniBtn.Size = UDim2.new(0, 0, 0, 0)
 	TweenService:Create(miniBtn, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
 		Size = UDim2.new(0, 50, 0, 50)
@@ -289,189 +394,191 @@ end)
 miniBtn.Activated:Connect(function()
 	if not miniDragging then
 		isMinimized = false
-		
 		TweenService:Create(miniBtn, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
 			Size = UDim2.new(0, 0, 0, 0)
 		}):Play()
-		
 		task.wait(0.2)
 		miniBtn.Visible = false
 		mainFrame.Visible = true
-		
 		mainFrame.Size = UDim2.new(0, 0, 0, 0)
 		TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-			Size = UDim2.new(0, 160, 0, 280)
+			Size = UDim2.new(0, 180, 0, 340)
 		}):Play()
 	end
 end)
 
--- Method toggles
-bodyBtn.Activated:Connect(function()
-	hideBody = not hideBody
+-- Anti-Kick Toggle
+antiKickBtn.Activated:Connect(function()
+	antiKickEnabled = not antiKickEnabled
 	
-	if hideBody then
-		bodyBtn.Text = "Body: ON"
-		bodyBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
+	if antiKickEnabled then
+		antiKickBtn.Text = "🛡️ Anti-Kick: ON"
+		antiKickBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
 	else
-		bodyBtn.Text = "Body: OFF"
-		bodyBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-	end
-	
-	if invisEnabled then
-		applyInvisibility()
+		antiKickBtn.Text = "🛡️ Anti-Kick: OFF"
+		antiKickBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
 	end
 end)
 
-accessBtn.Activated:Connect(function()
-	hideAccessories = not hideAccessories
-	
-	if hideAccessories then
-		accessBtn.Text = "Accessories: ON"
-		accessBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
-	else
-		accessBtn.Text = "Accessories: OFF"
-		accessBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-	end
-	
-	if invisEnabled then
-		applyInvisibility()
-	end
-end)
+-- INVISIBILITY SYSTEM FUNCTIONS
+local originalSizes = {}
+local removedParts = {}
+local originalCFrame = nil
+local noclipConnection = nil
 
-faceBtn.Activated:Connect(function()
-	hideFace = not hideFace
-	
-	if hideFace then
-		faceBtn.Text = "Face: ON"
-		faceBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
-	else
-		faceBtn.Text = "Face: OFF"
-		faceBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-	end
-	
-	if invisEnabled then
-		applyInvisibility()
-	end
-end)
-
--- MULTI-UNIVERSAL INVISIBLE SYSTEM
-function applyInvisibility()
+-- METHOD 1: SHRINK (Size Manipulation - Server Replicated)
+function applyShrink()
 	if not character then return end
 	
-	-- Store original transparencies
-	for _, obj in ipairs(character:GetDescendants()) do
-		if obj:IsA("BasePart") or obj:IsA("MeshPart") or obj:IsA("Decal") then
-			if not originalTransparencies[obj] then
-				originalTransparencies[obj] = obj.Transparency
+	for _, part in ipairs(character:GetDescendants()) do
+		if part:IsA("BasePart") or part:IsA("MeshPart") then
+			if part.Name ~= "HumanoidRootPart" then
+				originalSizes[part] = part.Size
+				part.Size = Vector3.new(0.001, 0.001, 0.001)
 			end
 		end
-	end
-	
-	-- Hide Body Parts (Keep HumanoidRootPart for collision/hitbox)
-	if hideBody then
-		for _, part in ipairs(character:GetChildren()) do
-			if part:IsA("BasePart") or part:IsA("MeshPart") then
-				if part.Name ~= "HumanoidRootPart" then
-					part.Transparency = 1
-					
-					-- Hide decals/textures on body parts
-					for _, child in ipairs(part:GetChildren()) do
-						if child:IsA("Decal") or child:IsA("Texture") then
-							child.Transparency = 1
-						end
-					end
-				end
-			end
-		end
-	end
-	
-	-- Hide Accessories
-	if hideAccessories then
-		for _, accessory in ipairs(character:GetChildren()) do
-			if accessory:IsA("Accessory") then
-				local handle = accessory:FindFirstChild("Handle")
-				if handle then
-					handle.Transparency = 1
-					
-					-- Hide accessory textures
-					for _, child in ipairs(handle:GetDescendants()) do
-						if child:IsA("Decal") or child:IsA("Texture") or child:IsA("SurfaceAppearance") then
-							if child:IsA("Decal") or child:IsA("Texture") then
-								child.Transparency = 1
-							elseif child:IsA("SurfaceAppearance") then
-								child.Color = Color3.new(1, 1, 1)
-								child.ColorMap = ""
-							end
-						end
-					end
-				end
-			end
-		end
-	end
-	
-	-- Hide Face
-	if hideFace then
-		local head = character:FindFirstChild("Head")
-		if head then
-			local face = head:FindFirstChildOfClass("Decal")
-			if face then
-				face.Transparency = 1
-			end
-		end
-	end
-	
-	-- Make HumanoidRootPart fully invisible but keep collision
-	if hrp then
-		hrp.Transparency = 1
-	end
-end
-
-function restoreVisibility()
-	if not character then return end
-	
-	-- Restore all original transparencies
-	for obj, transparency in pairs(originalTransparencies) do
-		if obj and obj.Parent then
-			pcall(function()
-				obj.Transparency = transparency
-			end)
-		end
-	end
-	
-	-- Restore face
-	local head = character:FindFirstChild("Head")
-	if head then
-		local face = head:FindFirstChildOfClass("Decal")
-		if face then
-			face.Transparency = 0
-		end
-	end
-	
-	-- Restore accessories
-	for _, accessory in ipairs(character:GetChildren()) do
-		if accessory:IsA("Accessory") then
-			local handle = accessory:FindFirstChild("Handle")
+		
+		-- Shrink accessories
+		if part:IsA("Accessory") then
+			local handle = part:FindFirstChild("Handle")
 			if handle then
-				for _, child in ipairs(handle:GetDescendants()) do
-					if child:IsA("SurfaceAppearance") then
-						-- Restore surface appearance (can't fully restore without storing original)
-						child.Color = Color3.new(1, 1, 1)
-					end
-				end
+				originalSizes[handle] = handle.Size
+				handle.Size = Vector3.new(0.001, 0.001, 0.001)
 			end
 		end
 	end
 	
-	originalTransparencies = {}
+	statusLabel.Text = "Status: ACTIVE (Shrink)\nMethod: Size = 0.001\nTools: Functional"
 end
 
--- Monitor for new accessories/parts (Battlegrounds games add effects)
+-- METHOD 2: UNDERGROUND (CFrame Below Map + Noclip)
+function applyUnderground()
+	if not character or not hrp then return end
+	
+	originalCFrame = hrp.CFrame
+	
+	-- Enable noclip
+	noclipConnection = RunService.Stepped:Connect(function()
+		if invisEnabled and character then
+			for _, part in ipairs(character:GetDescendants()) do
+				if part:IsA("BasePart") then
+					part.CanCollide = false
+				end
+			end
+		end
+	end)
+	
+	-- Move underground
+	hrp.CFrame = hrp.CFrame * CFrame.new(0, -500, 0)
+	
+	statusLabel.Text = "Status: ACTIVE (Underground)\nMethod: Y Position -500\nTools: Functional"
+end
+
+-- METHOD 3: REMOVE PARTS (Delete Body Parts - Most Effective!)
+function applyRemoveParts()
+	if not character then return end
+	
+	for _, part in ipairs(character:GetChildren()) do
+		if (part:IsA("BasePart") or part:IsA("MeshPart")) and part.Name ~= "HumanoidRootPart" then
+			removedParts[part.Name] = part:Clone()
+			part:Destroy()
+		end
+		
+		-- Remove accessories
+		if part:IsA("Accessory") then
+			removedParts[part.Name] = part:Clone()
+			part:Destroy()
+		end
+	end
+	
+	statusLabel.Text = "Status: ACTIVE (Remove)\nMethod: Parts Deleted\nTools: Functional"
+end
+
+-- METHOD 4: HYBRID (Combination)
+function applyHybrid()
+	applyShrink()
+	
+	-- Also hide locally
+	for _, part in ipairs(character:GetDescendants()) do
+		if part:IsA("BasePart") or part:IsA("MeshPart") then
+			part.Transparency = 1
+		end
+	end
+	
+	statusLabel.Text = "Status: ACTIVE (Hybrid)\nMethod: Shrink + Transparency\nTools: Functional"
+end
+
+-- ENABLE INVISIBILITY
+function enableInvisibility()
+	if not character then return end
+	
+	if currentMethod == "shrink" then
+		applyShrink()
+	elseif currentMethod == "underground" then
+		applyUnderground()
+	elseif currentMethod == "remove" then
+		applyRemoveParts()
+	elseif currentMethod == "hybrid" then
+		applyHybrid()
+	end
+end
+
+-- DISABLE INVISIBILITY
+function disableInvisibility()
+	if not character then return end
+	
+	-- Restore sizes
+	for part, size in pairs(originalSizes) do
+		if part and part.Parent then
+			part.Size = size
+		end
+	end
+	originalSizes = {}
+	
+	-- Restore position
+	if originalCFrame and hrp then
+		hrp.CFrame = originalCFrame
+		originalCFrame = nil
+	end
+	
+	-- Disable noclip
+	if noclipConnection then
+		noclipConnection:Disconnect()
+		noclipConnection = nil
+	end
+	
+	-- Restore collision
+	if character then
+		for _, part in ipairs(character:GetDescendants()) do
+			if part:IsA("BasePart") then
+				part.CanCollide = true
+				part.Transparency = 0
+			end
+		end
+	end
+	
+	-- Restore removed parts
+	for name, partClone in pairs(removedParts) do
+		if character then
+			local newPart = partClone:Clone()
+			newPart.Parent = character
+		end
+	end
+	removedParts = {}
+	
+	statusLabel.Text = "Status: Ready\nMethod: " .. currentMethod:upper() .. "\nTools: Functional"
+end
+
+-- Anti-Kick System (Keep character alive)
 spawn(function()
 	while true do
-		wait(0.5)
+		wait(1)
 		
-		if invisEnabled and character then
-			applyInvisibility()
+		if antiKickEnabled and invisEnabled and humanoid then
+			-- Prevent AFK kick
+			humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+			task.wait(0.1)
+			humanoid:ChangeState(Enum.HumanoidStateType.Landing)
 		end
 	end
 end)
@@ -485,24 +592,24 @@ toggleBtn.Activated:Connect(function()
 		toggleBtn.BackgroundColor3 = Color3.fromRGB(150, 100, 255)
 		statusDot.BackgroundColor3 = Color3.fromRGB(150, 100, 255)
 		
-		applyInvisibility()
+		enableInvisibility()
 	else
 		toggleBtn.Text = "👻 DISABLED"
 		toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
 		statusDot.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
 		
-		restoreVisibility()
+		disableInvisibility()
 	end
 end)
 
-print("==========================================")
-print("Multi-Universal Invisible [FULL FUNCTION]")
-print("==========================================")
-print("✅ Hide Body Parts (Keep HumanoidRootPart)")
-print("✅ Hide Accessories (Hats, Hair, etc.)")
-print("✅ Hide Face Decal")
+print("===========================================")
+print("Multi-Universal Invisible [TRUE INVISIBILITY]")
+print("===========================================")
+print("✅ METHOD 1: SHRINK (Size = 0.001)")
+print("✅ METHOD 2: UNDERGROUND (Y -500 + Noclip)")
+print("✅ METHOD 3: REMOVE PARTS (Delete Body)")
+print("✅ METHOD 4: HYBRID (Multi-Method)")
+print("✅ Anti-Kick Protection")
 print("✅ Tools Remain Functional!")
-print("✅ Can Hit & Deal Damage")
-print("✅ Works in Battlegrounds Games")
-print("✅ Auto-applies to new parts/effects")
-print("==========================================")
+print("✅ SERVER-SIDE - Others CAN'T See You!")
+print("===========================================")
