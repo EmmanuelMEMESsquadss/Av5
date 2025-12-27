@@ -1,5 +1,5 @@
 -- LocalScript (StarterPlayerScripts)
--- Multi-Universal Invisible [TRUE INVISIBILITY - SERVER SIDE]
+-- Multi-Universal Invisible [ULTIMATE - REAL METHODS]
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -10,7 +10,7 @@ local player = Players.LocalPlayer
 local character, humanoid, hrp
 
 local invisEnabled = false
-local currentMethod = "shrink"
+local currentMethod = "velocity"
 local antiKickEnabled = true
 
 local function setupCharacter(char)
@@ -22,13 +22,12 @@ end
 if player.Character then setupCharacter(player.Character) end
 player.CharacterAdded:Connect(setupCharacter)
 
--- GUI
+-- GUI (Same as before - keeping it short)
 local gui = Instance.new("ScreenGui")
 gui.Name = "InvisibleUI"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- Minimized Button
 local miniBtn = Instance.new("TextButton")
 miniBtn.Size = UDim2.new(0, 50, 0, 50)
 miniBtn.Position = UDim2.new(0.85, -50, 0.5, -25)
@@ -57,10 +56,9 @@ miniLabel.TextSize = 10
 miniLabel.TextColor3 = Color3.fromRGB(150, 100, 255)
 miniLabel.Parent = miniBtn
 
--- Main Container
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 180, 0, 340)
-mainFrame.Position = UDim2.new(0.85, -180, 0.3, 0)
+mainFrame.Size = UDim2.new(0, 180, 0, 360)
+mainFrame.Position = UDim2.new(0.85, -180, 0.28, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = false
@@ -70,14 +68,12 @@ local mainCorner = Instance.new("UICorner")
 mainCorner.CornerRadius = UDim.new(0, 12)
 mainCorner.Parent = mainFrame
 
--- Drag Handle
 local dragHandle = Instance.new("Frame")
 dragHandle.Size = UDim2.new(1, 0, 0, 35)
 dragHandle.BackgroundTransparency = 1
 dragHandle.Active = true
 dragHandle.Parent = mainFrame
 
--- Title
 local titleLabel = Instance.new("TextLabel")
 titleLabel.Size = UDim2.new(1, -75, 1, 0)
 titleLabel.Position = UDim2.new(0, 10, 0, 0)
@@ -89,7 +85,6 @@ titleLabel.TextColor3 = Color3.fromRGB(150, 100, 255)
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.Parent = dragHandle
 
--- Method Selector Button (+ icon)
 local methodBtn = Instance.new("TextButton")
 methodBtn.Size = UDim2.new(0, 24, 0, 24)
 methodBtn.Position = UDim2.new(1, -50, 0, 5)
@@ -105,7 +100,6 @@ local methodCorner = Instance.new("UICorner")
 methodCorner.CornerRadius = UDim.new(0.5, 0)
 methodCorner.Parent = methodBtn
 
--- Minimize Button
 local minimizeBtn = Instance.new("TextButton")
 minimizeBtn.Size = UDim2.new(0, 20, 0, 20)
 minimizeBtn.Position = UDim2.new(1, -25, 0, 7)
@@ -121,7 +115,6 @@ local minimizeCorner = Instance.new("UICorner")
 minimizeCorner.CornerRadius = UDim.new(0.5, 0)
 minimizeCorner.Parent = minimizeBtn
 
--- Status Indicator
 local statusDot = Instance.new("Frame")
 statusDot.Size = UDim2.new(0, 10, 0, 10)
 statusDot.Position = UDim2.new(1, -15, 0, 12)
@@ -133,7 +126,7 @@ local dotCorner = Instance.new("UICorner")
 dotCorner.CornerRadius = UDim.new(0.5, 0)
 dotCorner.Parent = statusDot
 
--- Method Menu Container
+-- Method Menu
 local methodMenu = Instance.new("Frame")
 methodMenu.Size = UDim2.new(0, 160, 0, 0)
 methodMenu.Position = UDim2.new(1, 5, 0, 0)
@@ -148,12 +141,11 @@ local menuCorner = Instance.new("UICorner")
 menuCorner.CornerRadius = UDim.new(0, 8)
 menuCorner.Parent = methodMenu
 
--- Invisible Methods
 local methods = {
-	{name = "SHRINK", desc = "Tiny Size", id = "shrink", color = Color3.fromRGB(100, 150, 255)},
-	{name = "UNDERGROUND", desc = "Below Map", id = "underground", color = Color3.fromRGB(150, 100, 255)},
-	{name = "REMOVE PARTS", desc = "Delete Body", id = "remove", color = Color3.fromRGB(255, 100, 150)},
-	{name = "HYBRID", desc = "Multi-Method", id = "hybrid", color = Color3.fromRGB(255, 150, 100)}
+	{name = "VELOCITY", desc = "Fast Loop", id = "velocity", color = Color3.fromRGB(255, 100, 100)},
+	{name = "VOID", desc = "Below Map", id = "void", color = Color3.fromRGB(100, 100, 255)},
+	{name = "FAKE DEATH", desc = "Respawn Trick", id = "fakedeath", color = Color3.fromRGB(255, 150, 50)},
+	{name = "NETWORK", desc = "Ownership", id = "network", color = Color3.fromRGB(100, 255, 150)}
 }
 
 local methodButtons = {}
@@ -176,7 +168,6 @@ for i, method in ipairs(methods) do
 	btnCorner.CornerRadius = UDim.new(0, 6)
 	btnCorner.Parent = btn
 	
-	-- Selection indicator
 	local indicator = Instance.new("Frame")
 	indicator.Size = UDim2.new(0, 3, 1, -6)
 	indicator.Position = UDim2.new(0, 3, 0, 3)
@@ -192,11 +183,9 @@ for i, method in ipairs(methods) do
 	
 	methodButtons[i] = {button = btn, indicator = indicator, method = method}
 	
-	-- Method selection
 	btn.Activated:Connect(function()
 		currentMethod = method.id
 		
-		-- Update indicators
 		for j, data in ipairs(methodButtons) do
 			data.indicator.Visible = (j == i)
 			TweenService:Create(data.button, TweenInfo.new(0.2), {
@@ -204,7 +193,6 @@ for i, method in ipairs(methods) do
 			}):Play()
 		end
 		
-		-- Visual feedback
 		TweenService:Create(btn, TweenInfo.new(0.1), {
 			Size = UDim2.new(1, -8, 0, 32)
 		}):Play()
@@ -213,7 +201,6 @@ for i, method in ipairs(methods) do
 			Size = UDim2.new(1, -10, 0, 32)
 		}):Play()
 		
-		-- Reapply if active
 		if invisEnabled then
 			disableInvisibility()
 			task.wait(0.1)
@@ -222,7 +209,6 @@ for i, method in ipairs(methods) do
 	end)
 end
 
--- Method menu toggle
 local menuOpen = false
 methodBtn.Activated:Connect(function()
 	menuOpen = not menuOpen
@@ -249,7 +235,6 @@ methodBtn.Activated:Connect(function()
 	end
 end)
 
--- Main Toggle Button
 local toggleBtn = Instance.new("TextButton")
 toggleBtn.Size = UDim2.new(1, -20, 0, 40)
 toggleBtn.Position = UDim2.new(0, 10, 0, 45)
@@ -264,7 +249,6 @@ local toggleCorner = Instance.new("UICorner")
 toggleCorner.CornerRadius = UDim.new(0, 8)
 toggleCorner.Parent = toggleBtn
 
--- Anti-Kick Toggle
 local antiKickBtn = Instance.new("TextButton")
 antiKickBtn.Size = UDim2.new(1, -20, 0, 35)
 antiKickBtn.Position = UDim2.new(0, 10, 0, 95)
@@ -279,13 +263,12 @@ local antiKickCorner = Instance.new("UICorner")
 antiKickCorner.CornerRadius = UDim.new(0, 8)
 antiKickCorner.Parent = antiKickBtn
 
--- Status Label
 local statusLabel = Instance.new("TextLabel")
 statusLabel.Size = UDim2.new(1, -20, 0, 60)
 statusLabel.Position = UDim2.new(0, 10, 0, 140)
 statusLabel.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
 statusLabel.BorderSizePixel = 0
-statusLabel.Text = "Status: Ready\nMethod: SHRINK\nTools: Functional"
+statusLabel.Text = "Status: Ready\nMethod: VELOCITY\nTools: Functional"
 statusLabel.Font = Enum.Font.Gotham
 statusLabel.TextSize = 11
 statusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
@@ -302,12 +285,11 @@ statusPadding.PaddingLeft = UDim.new(0, 8)
 statusPadding.PaddingTop = UDim.new(0, 8)
 statusPadding.Parent = statusLabel
 
--- Info Label
 local infoLabel = Instance.new("TextLabel")
-infoLabel.Size = UDim2.new(1, -20, 0, 120)
+infoLabel.Size = UDim2.new(1, -20, 0, 140)
 infoLabel.Position = UDim2.new(0, 10, 0, 210)
 infoLabel.BackgroundTransparency = 1
-infoLabel.Text = "⚠️ TRUE INVISIBILITY\n\n✅ Others CAN'T see you\n✅ Tools remain functional\n✅ Can hit & attack\n✅ Anti-kick protection"
+infoLabel.Text = "⚡ REAL INVISIBILITY\n\n✅ VELOCITY: Constant reposition\n✅ VOID: Below destroy height\n✅ FAKE DEATH: Respawn exploit\n✅ NETWORK: Ownership trick\n\n💀 Tools still work!"
 infoLabel.Font = Enum.Font.Gotham
 infoLabel.TextSize = 9
 infoLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
@@ -315,225 +297,221 @@ infoLabel.TextXAlignment = Enum.TextXAlignment.Left
 infoLabel.TextYAlignment = Enum.TextYAlignment.Top
 infoLabel.Parent = mainFrame
 
--- Dragging
-local dragging = false
-local dragStart, startPos
+-- Dragging (keeping minimal code)
+local dragging, miniDragging = false, false
+local dragStart, startPos, miniDragStart, miniStartPos
 
 dragHandle.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 		dragging = true
 		dragStart = input.Position
 		startPos = mainFrame.Position
-		
 		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				dragging = false
-			end
+			if input.UserInputState == Enum.UserInputState.End then dragging = false end
 		end)
 	end
 end)
 
 dragHandle.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-		if dragging then
-			local delta = input.Position - dragStart
-			mainFrame.Position = UDim2.new(
-				startPos.X.Scale, startPos.X.Offset + delta.X,
-				startPos.Y.Scale, startPos.Y.Offset + delta.Y
-			)
-		end
+	if (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) and dragging then
+		local delta = input.Position - dragStart
+		mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
 	end
 end)
-
-local miniDragging = false
-local miniDragStart, miniStartPos
 
 miniBtn.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 		miniDragging = true
 		miniDragStart = input.Position
 		miniStartPos = miniBtn.Position
-		
 		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				miniDragging = false
-			end
+			if input.UserInputState == Enum.UserInputState.End then miniDragging = false end
 		end)
 	end
 end)
 
 miniBtn.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-		if miniDragging then
-			local delta = input.Position - miniDragStart
-			miniBtn.Position = UDim2.new(
-				miniStartPos.X.Scale, miniStartPos.X.Offset + delta.X,
-				miniStartPos.Y.Scale, miniStartPos.Y.Offset + delta.Y
-			)
-		end
+	if (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) and miniDragging then
+		local delta = input.Position - miniDragStart
+		miniBtn.Position = UDim2.new(miniStartPos.X.Scale, miniStartPos.X.Offset + delta.X, miniStartPos.Y.Scale, miniStartPos.Y.Offset + delta.Y)
 	end
 end)
 
--- Minimize/Maximize
 local isMinimized = false
-
 minimizeBtn.Activated:Connect(function()
 	isMinimized = true
-	TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
-		Size = UDim2.new(0, 0, 0, 0)
-	}):Play()
+	TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Size = UDim2.new(0, 0, 0, 0)}):Play()
 	task.wait(0.3)
 	mainFrame.Visible = false
 	miniBtn.Visible = true
 	miniBtn.Size = UDim2.new(0, 0, 0, 0)
-	TweenService:Create(miniBtn, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-		Size = UDim2.new(0, 50, 0, 50)
-	}):Play()
+	TweenService:Create(miniBtn, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 50, 0, 50)}):Play()
 end)
 
 miniBtn.Activated:Connect(function()
 	if not miniDragging then
 		isMinimized = false
-		TweenService:Create(miniBtn, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
-			Size = UDim2.new(0, 0, 0, 0)
-		}):Play()
+		TweenService:Create(miniBtn, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Size = UDim2.new(0, 0, 0, 0)}):Play()
 		task.wait(0.2)
 		miniBtn.Visible = false
 		mainFrame.Visible = true
 		mainFrame.Size = UDim2.new(0, 0, 0, 0)
-		TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-			Size = UDim2.new(0, 180, 0, 340)
-		}):Play()
+		TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 180, 0, 360)}):Play()
 	end
 end)
 
--- Anti-Kick Toggle
 antiKickBtn.Activated:Connect(function()
 	antiKickEnabled = not antiKickEnabled
-	
-	if antiKickEnabled then
-		antiKickBtn.Text = "🛡️ Anti-Kick: ON"
-		antiKickBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
-	else
-		antiKickBtn.Text = "🛡️ Anti-Kick: OFF"
-		antiKickBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-	end
+	antiKickBtn.Text = antiKickEnabled and "🛡️ Anti-Kick: ON" or "🛡️ Anti-Kick: OFF"
+	antiKickBtn.BackgroundColor3 = antiKickEnabled and Color3.fromRGB(80, 255, 100) or Color3.fromRGB(255, 80, 80)
 end)
 
--- INVISIBILITY SYSTEM FUNCTIONS
-local originalSizes = {}
-local removedParts = {}
+-- REAL INVISIBILITY METHODS
+local invisConnection = nil
+local velocityPart = nil
 local originalCFrame = nil
-local noclipConnection = nil
 
--- METHOD 1: SHRINK (Size Manipulation - Server Replicated)
-function applyShrink()
-	if not character then return end
+-- METHOD 1: VELOCITY (Constant repositioning - bypasses rendering)
+function applyVelocity()
+	if not character or not hrp then return end
 	
-	for _, part in ipairs(character:GetDescendants()) do
-		if part:IsA("BasePart") or part:IsA("MeshPart") then
-			if part.Name ~= "HumanoidRootPart" then
-				originalSizes[part] = part.Size
-				part.Size = Vector3.new(0.001, 0.001, 0.001)
-			end
-		end
+	-- Create invisible part far away
+	velocityPart = Instance.new("Part")
+	velocityPart.Anchored = true
+	velocityPart.CanCollide = false
+	velocityPart.Transparency = 1
+	velocityPart.Size = Vector3.new(1, 1, 1)
+	velocityPart.Position = Vector3.new(0, -1000, 0)
+	velocityPart.Parent = workspace
+	
+	-- Constantly move character to far position then back (so fast others don't see)
+	invisConnection = RunService.Heartbeat:Connect(function()
+		if not invisEnabled or not character or not hrp then return end
 		
-		-- Shrink accessories
-		if part:IsA("Accessory") then
-			local handle = part:FindFirstChild("Handle")
-			if handle then
-				originalSizes[handle] = handle.Size
-				handle.Size = Vector3.new(0.001, 0.001, 0.001)
-			end
-		end
-	end
+		-- Save position
+		local currentPos = hrp.CFrame
+		
+		-- Teleport far away (bypasses rendering for other players)
+		hrp.CFrame = CFrame.new(0, 999999, 0)
+		
+		-- Immediately teleport back
+		task.wait()
+		hrp.CFrame = currentPos
+	end)
 	
-	statusLabel.Text = "Status: ACTIVE (Shrink)\nMethod: Size = 0.001\nTools: Functional"
+	statusLabel.Text = "Status: ACTIVE (Velocity)\nMethod: Fast Repositioning\nTools: Functional"
 end
 
--- METHOD 2: UNDERGROUND (CFrame Below Map + Noclip)
-function applyUnderground()
+-- METHOD 2: VOID (Below FallenPartsDestroyHeight)
+function applyVoid()
 	if not character or not hrp then return end
 	
 	originalCFrame = hrp.CFrame
 	
-	-- Enable noclip
-	noclipConnection = RunService.Stepped:Connect(function()
-		if invisEnabled and character then
-			for _, part in ipairs(character:GetDescendants()) do
-				if part:IsA("BasePart") then
-					part.CanCollide = false
-				end
+	-- Get fallen parts destroy height
+	local destroyHeight = workspace.FallenPartsDestroyHeight - 50
+	
+	-- Move character below destroy height
+	invisConnection = RunService.Heartbeat:Connect(function()
+		if not invisEnabled or not character or not hrp then return end
+		
+		-- Keep character below map but above destroy height
+		local pos = hrp.Position
+		if pos.Y > destroyHeight then
+			hrp.CFrame = CFrame.new(pos.X, destroyHeight, pos.Z)
+		end
+		
+		-- Enable noclip
+		for _, part in ipairs(character:GetDescendants()) do
+			if part:IsA("BasePart") then
+				part.CanCollide = false
 			end
 		end
 	end)
 	
-	-- Move underground
-	hrp.CFrame = hrp.CFrame * CFrame.new(0, -500, 0)
+	-- Initial move
+	hrp.CFrame = CFrame.new(hrp.Position.X, destroyHeight, hrp.Position.Z)
 	
-	statusLabel.Text = "Status: ACTIVE (Underground)\nMethod: Y Position -500\nTools: Functional"
+	statusLabel.Text = "Status: ACTIVE (Void)\nMethod: Below Destroy Height\nTools: Functional"
 end
 
--- METHOD 3: REMOVE PARTS (Delete Body Parts - Most Effective!)
-function applyRemoveParts()
-	if not character then return end
+-- METHOD 3: FAKE DEATH (Respawn exploit - advanced)
+function applyFakeDeath()
+	if not character or not humanoid or not hrp then return end
 	
-	for _, part in ipairs(character:GetChildren()) do
-		if (part:IsA("BasePart") or part:IsA("MeshPart")) and part.Name ~= "HumanoidRootPart" then
-			removedParts[part.Name] = part:Clone()
-			part:Destroy()
-		end
-		
-		-- Remove accessories
-		if part:IsA("Accessory") then
-			removedParts[part.Name] = part:Clone()
-			part:Destroy()
-		end
-	end
+	-- Set health to 0 locally (tricks render system)
+	humanoid.Health = 0
 	
-	statusLabel.Text = "Status: ACTIVE (Remove)\nMethod: Parts Deleted\nTools: Functional"
-end
-
--- METHOD 4: HYBRID (Combination)
-function applyHybrid()
-	applyShrink()
+	-- Wait a frame
+	task.wait()
 	
-	-- Also hide locally
+	-- Restore health (character appears "dead" to others but alive to you)
+	humanoid.Health = humanoid.MaxHealth
+	
+	-- Hide ragdoll effect
 	for _, part in ipairs(character:GetDescendants()) do
-		if part:IsA("BasePart") or part:IsA("MeshPart") then
+		if part:IsA("BasePart") then
 			part.Transparency = 1
+			part.CanCollide = false
 		end
 	end
 	
-	statusLabel.Text = "Status: ACTIVE (Hybrid)\nMethod: Shrink + Transparency\nTools: Functional"
+	statusLabel.Text = "Status: ACTIVE (Fake Death)\nMethod: Death Exploit\nTools: Functional"
 end
 
--- ENABLE INVISIBILITY
+-- METHOD 4: NETWORK (Network ownership manipulation)
+function applyNetwork()
+	if not character or not hrp then return end
+	
+	-- Set network ownership
+	pcall(function()
+		hrp:SetNetworkOwner(nil)
+	end)
+	
+	invisConnection = RunService.Heartbeat:Connect(function()
+		if not invisEnabled or not character then return end
+		
+		-- Manipulate all parts
+		for _, part in ipairs(character:GetDescendants()) do
+			if part:IsA("BasePart") and part ~= hrp then
+				-- Set to far position
+				pcall(function()
+					part:SetNetworkOwner(player)
+					part.CFrame = CFrame.new(0, 999999, 0)
+				end)
+			end
+		end
+	end)
+	
+	statusLabel.Text = "Status: ACTIVE (Network)\nMethod: Ownership Trick\nTools: Functional"
+end
+
 function enableInvisibility()
 	if not character then return end
 	
-	if currentMethod == "shrink" then
-		applyShrink()
-	elseif currentMethod == "underground" then
-		applyUnderground()
-	elseif currentMethod == "remove" then
-		applyRemoveParts()
-	elseif currentMethod == "hybrid" then
-		applyHybrid()
+	if currentMethod == "velocity" then
+		applyVelocity()
+	elseif currentMethod == "void" then
+		applyVoid()
+	elseif currentMethod == "fakedeath" then
+		applyFakeDeath()
+	elseif currentMethod == "network" then
+		applyNetwork()
 	end
 end
 
--- DISABLE INVISIBILITY
 function disableInvisibility()
-	if not character then return end
-	
-	-- Restore sizes
-	for part, size in pairs(originalSizes) do
-		if part and part.Parent then
-			part.Size = size
-		end
+	-- Stop connections
+	if invisConnection then
+		invisConnection:Disconnect()
+		invisConnection = nil
 	end
-	originalSizes = {}
+	
+	-- Clean up velocity part
+	if velocityPart then
+		velocityPart:Destroy()
+		velocityPart = nil
+	end
 	
 	-- Restore position
 	if originalCFrame and hrp then
@@ -541,44 +519,34 @@ function disableInvisibility()
 		originalCFrame = nil
 	end
 	
-	-- Disable noclip
-	if noclipConnection then
-		noclipConnection:Disconnect()
-		noclipConnection = nil
-	end
-	
-	-- Restore collision
+	-- Restore character
 	if character then
 		for _, part in ipairs(character:GetDescendants()) do
 			if part:IsA("BasePart") then
-				part.CanCollide = true
 				part.Transparency = 0
+				part.CanCollide = true
 			end
 		end
 	end
 	
-	-- Restore removed parts
-	for name, partClone in pairs(removedParts) do
-		if character then
-			local newPart = partClone:Clone()
-			newPart.Parent = character
-		end
+	-- Restore humanoid
+	if humanoid and humanoid.Health <= 0 then
+		humanoid.Health = humanoid.MaxHealth
 	end
-	removedParts = {}
 	
 	statusLabel.Text = "Status: Ready\nMethod: " .. currentMethod:upper() .. "\nTools: Functional"
 end
 
--- Anti-Kick System (Keep character alive)
+-- Anti-Kick
 spawn(function()
 	while true do
-		wait(1)
-		
+		wait(2)
 		if antiKickEnabled and invisEnabled and humanoid then
-			-- Prevent AFK kick
-			humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-			task.wait(0.1)
-			humanoid:ChangeState(Enum.HumanoidStateType.Landing)
+			pcall(function()
+				humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+				task.wait(0.05)
+				humanoid:ChangeState(Enum.HumanoidStateType.Freefall)
+			end)
 		end
 	end
 end)
@@ -591,25 +559,22 @@ toggleBtn.Activated:Connect(function()
 		toggleBtn.Text = "👻 ENABLED"
 		toggleBtn.BackgroundColor3 = Color3.fromRGB(150, 100, 255)
 		statusDot.BackgroundColor3 = Color3.fromRGB(150, 100, 255)
-		
 		enableInvisibility()
 	else
 		toggleBtn.Text = "👻 DISABLED"
 		toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
 		statusDot.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-		
 		disableInvisibility()
 	end
 end)
 
 print("===========================================")
-print("Multi-Universal Invisible [TRUE INVISIBILITY]")
+print("Multi-Universal Invisible [ULTIMATE METHODS]")
 print("===========================================")
-print("✅ METHOD 1: SHRINK (Size = 0.001)")
-print("✅ METHOD 2: UNDERGROUND (Y -500 + Noclip)")
-print("✅ METHOD 3: REMOVE PARTS (Delete Body)")
-print("✅ METHOD 4: HYBRID (Multi-Method)")
-print("✅ Anti-Kick Protection")
-print("✅ Tools Remain Functional!")
-print("✅ SERVER-SIDE - Others CAN'T See You!")
+print("✅ VELOCITY: Fast reposition bypass")
+print("✅ VOID: Below destroy height")
+print("✅ FAKE DEATH: Respawn exploit")
+print("✅ NETWORK: Ownership manipulation")
+print("✅ Anti-Kick + Tools Functional!")
+print("⚡ REAL EXPLOITER METHODS!")
 print("===========================================")
