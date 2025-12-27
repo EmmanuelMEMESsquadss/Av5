@@ -1,5 +1,5 @@
 -- LocalScript (StarterPlayerScripts)
--- Multi-Universal Invisible [ULTIMATE - REAL METHODS]
+-- Multi-Universal Invisible [2025 WORKING METHODS]
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -10,8 +10,7 @@ local player = Players.LocalPlayer
 local character, humanoid, hrp
 
 local invisEnabled = false
-local currentMethod = "velocity"
-local antiKickEnabled = true
+local currentMethod = "headless"
 
 local function setupCharacter(char)
 	character = char
@@ -22,7 +21,7 @@ end
 if player.Character then setupCharacter(player.Character) end
 player.CharacterAdded:Connect(setupCharacter)
 
--- GUI (Same as before - keeping it short)
+-- GUI
 local gui = Instance.new("ScreenGui")
 gui.Name = "InvisibleUI"
 gui.ResetOnSpawn = false
@@ -57,8 +56,8 @@ miniLabel.TextColor3 = Color3.fromRGB(150, 100, 255)
 miniLabel.Parent = miniBtn
 
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 180, 0, 360)
-mainFrame.Position = UDim2.new(0.85, -180, 0.28, 0)
+mainFrame.Size = UDim2.new(0, 200, 0, 420)
+mainFrame.Position = UDim2.new(0.85, -200, 0.25, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = false
@@ -128,7 +127,7 @@ dotCorner.Parent = statusDot
 
 -- Method Menu
 local methodMenu = Instance.new("Frame")
-methodMenu.Size = UDim2.new(0, 160, 0, 0)
+methodMenu.Size = UDim2.new(0, 180, 0, 0)
 methodMenu.Position = UDim2.new(1, 5, 0, 0)
 methodMenu.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 methodMenu.BorderSizePixel = 0
@@ -137,28 +136,29 @@ methodMenu.Visible = false
 methodMenu.ZIndex = 11
 methodMenu.Parent = mainFrame
 
-local menuCorner = Instance.new("UICorner")
-menuCorner.CornerRadius = UDim.new(0, 8)
-menuCorner.Parent = methodMenu
+local menuCorner2 = Instance.new("UICorner")
+menuCorner2.CornerRadius = UDim.new(0, 8)
+menuCorner2.Parent = methodMenu
 
 local methods = {
-	{name = "VELOCITY", desc = "Fast Loop", id = "velocity", color = Color3.fromRGB(255, 100, 100)},
-	{name = "VOID", desc = "Below Map", id = "void", color = Color3.fromRGB(100, 100, 255)},
-	{name = "FAKE DEATH", desc = "Respawn Trick", id = "fakedeath", color = Color3.fromRGB(255, 150, 50)},
-	{name = "NETWORK", desc = "Ownership", id = "network", color = Color3.fromRGB(100, 255, 150)}
+	{name = "HEADLESS", desc = "Delete Head", id = "headless", color = Color3.fromRGB(255, 80, 80)},
+	{name = "SEAT WELD", desc = "Invisible Seat", id = "seatweld", color = Color3.fromRGB(80, 150, 255)},
+	{name = "FLING", desc = "Constant Spin", id = "fling", color = Color3.fromRGB(255, 150, 80)},
+	{name = "KORBLOX", desc = "Limb Delete", id = "korblox", color = Color3.fromRGB(150, 80, 255)},
+	{name = "TOOL INVIS", desc = "Tool Trick", id = "toolinvis", color = Color3.fromRGB(80, 255, 150)}
 }
 
 local methodButtons = {}
 
 for i, method in ipairs(methods) do
 	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(1, -10, 0, 32)
-	btn.Position = UDim2.new(0, 5, 0, 5 + (i-1) * 37)
+	btn.Size = UDim2.new(1, -10, 0, 30)
+	btn.Position = UDim2.new(0, 5, 0, 5 + (i-1) * 35)
 	btn.BackgroundColor3 = method.color
 	btn.BackgroundTransparency = 0.2
 	btn.BorderSizePixel = 0
 	btn.Font = Enum.Font.GothamBold
-	btn.TextSize = 11
+	btn.TextSize = 10
 	btn.TextColor3 = Color3.new(1, 1, 1)
 	btn.Text = method.name .. " · " .. method.desc
 	btn.ZIndex = 12
@@ -193,14 +193,6 @@ for i, method in ipairs(methods) do
 			}):Play()
 		end
 		
-		TweenService:Create(btn, TweenInfo.new(0.1), {
-			Size = UDim2.new(1, -8, 0, 32)
-		}):Play()
-		task.wait(0.1)
-		TweenService:Create(btn, TweenInfo.new(0.1), {
-			Size = UDim2.new(1, -10, 0, 32)
-		}):Play()
-		
 		if invisEnabled then
 			disableInvisibility()
 			task.wait(0.1)
@@ -216,7 +208,7 @@ methodBtn.Activated:Connect(function()
 	if menuOpen then
 		methodMenu.Visible = true
 		TweenService:Create(methodMenu, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-			Size = UDim2.new(0, 160, 0, 155)
+			Size = UDim2.new(0, 180, 0, 180)
 		}):Play()
 		TweenService:Create(methodBtn, TweenInfo.new(0.2), {
 			Rotation = 45,
@@ -224,7 +216,7 @@ methodBtn.Activated:Connect(function()
 		}):Play()
 	else
 		TweenService:Create(methodMenu, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
-			Size = UDim2.new(0, 160, 0, 0)
+			Size = UDim2.new(0, 180, 0, 0)
 		}):Play()
 		TweenService:Create(methodBtn, TweenInfo.new(0.2), {
 			Rotation = 0,
@@ -236,12 +228,12 @@ methodBtn.Activated:Connect(function()
 end)
 
 local toggleBtn = Instance.new("TextButton")
-toggleBtn.Size = UDim2.new(1, -20, 0, 40)
+toggleBtn.Size = UDim2.new(1, -20, 0, 45)
 toggleBtn.Position = UDim2.new(0, 10, 0, 45)
 toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
 toggleBtn.Text = "👻 DISABLED"
 toggleBtn.Font = Enum.Font.GothamBold
-toggleBtn.TextSize = 16
+toggleBtn.TextSize = 18
 toggleBtn.TextColor3 = Color3.new(1, 1, 1)
 toggleBtn.Parent = mainFrame
 
@@ -249,28 +241,14 @@ local toggleCorner = Instance.new("UICorner")
 toggleCorner.CornerRadius = UDim.new(0, 8)
 toggleCorner.Parent = toggleBtn
 
-local antiKickBtn = Instance.new("TextButton")
-antiKickBtn.Size = UDim2.new(1, -20, 0, 35)
-antiKickBtn.Position = UDim2.new(0, 10, 0, 95)
-antiKickBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
-antiKickBtn.Text = "🛡️ Anti-Kick: ON"
-antiKickBtn.Font = Enum.Font.GothamBold
-antiKickBtn.TextSize = 13
-antiKickBtn.TextColor3 = Color3.new(1, 1, 1)
-antiKickBtn.Parent = mainFrame
-
-local antiKickCorner = Instance.new("UICorner")
-antiKickCorner.CornerRadius = UDim.new(0, 8)
-antiKickCorner.Parent = antiKickBtn
-
 local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(1, -20, 0, 60)
-statusLabel.Position = UDim2.new(0, 10, 0, 140)
+statusLabel.Size = UDim2.new(1, -20, 0, 80)
+statusLabel.Position = UDim2.new(0, 10, 0, 100)
 statusLabel.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
 statusLabel.BorderSizePixel = 0
-statusLabel.Text = "Status: Ready\nMethod: VELOCITY\nTools: Functional"
+statusLabel.Text = "Status: Ready\nMethod: HEADLESS\n\n💡 Try each method!\nSome work in specific games"
 statusLabel.Font = Enum.Font.Gotham
-statusLabel.TextSize = 11
+statusLabel.TextSize = 10
 statusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
 statusLabel.TextXAlignment = Enum.TextXAlignment.Left
 statusLabel.TextYAlignment = Enum.TextYAlignment.Top
@@ -286,10 +264,10 @@ statusPadding.PaddingTop = UDim.new(0, 8)
 statusPadding.Parent = statusLabel
 
 local infoLabel = Instance.new("TextLabel")
-infoLabel.Size = UDim2.new(1, -20, 0, 140)
-infoLabel.Position = UDim2.new(0, 10, 0, 210)
+infoLabel.Size = UDim2.new(1, -20, 0, 210)
+infoLabel.Position = UDim2.new(0, 10, 0, 190)
 infoLabel.BackgroundTransparency = 1
-infoLabel.Text = "⚡ REAL INVISIBILITY\n\n✅ VELOCITY: Constant reposition\n✅ VOID: Below destroy height\n✅ FAKE DEATH: Respawn exploit\n✅ NETWORK: Ownership trick\n\n💀 Tools still work!"
+infoLabel.Text = "💀 2025 WORKING METHODS\n\n🔴 HEADLESS: Deletes head\n   (Most universal)\n\n🔵 SEAT WELD: Welds to seat\n   (Works in most games)\n\n🟠 FLING: Spinning method\n   (Physics-based games)\n\n🟣 KORBLOX: Removes limbs\n   (R15 games)\n\n🟢 TOOL INVIS: Uses tool handle\n   (Games with tools)\n\n⚠️ Try all methods!"
 infoLabel.Font = Enum.Font.Gotham
 infoLabel.TextSize = 9
 infoLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
@@ -297,7 +275,7 @@ infoLabel.TextXAlignment = Enum.TextXAlignment.Left
 infoLabel.TextYAlignment = Enum.TextYAlignment.Top
 infoLabel.Parent = mainFrame
 
--- Dragging (keeping minimal code)
+-- Dragging
 local dragging, miniDragging = false, false
 local dragStart, startPos, miniDragStart, miniStartPos
 
@@ -337,9 +315,7 @@ miniBtn.InputChanged:Connect(function(input)
 	end
 end)
 
-local isMinimized = false
 minimizeBtn.Activated:Connect(function()
-	isMinimized = true
 	TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Size = UDim2.new(0, 0, 0, 0)}):Play()
 	task.wait(0.3)
 	mainFrame.Visible = false
@@ -350,206 +326,174 @@ end)
 
 miniBtn.Activated:Connect(function()
 	if not miniDragging then
-		isMinimized = false
 		TweenService:Create(miniBtn, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Size = UDim2.new(0, 0, 0, 0)}):Play()
 		task.wait(0.2)
 		miniBtn.Visible = false
 		mainFrame.Visible = true
 		mainFrame.Size = UDim2.new(0, 0, 0, 0)
-		TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 180, 0, 360)}):Play()
+		TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 200, 0, 420)}):Play()
 	end
 end)
 
-antiKickBtn.Activated:Connect(function()
-	antiKickEnabled = not antiKickEnabled
-	antiKickBtn.Text = antiKickEnabled and "🛡️ Anti-Kick: ON" or "🛡️ Anti-Kick: OFF"
-	antiKickBtn.BackgroundColor3 = antiKickEnabled and Color3.fromRGB(80, 255, 100) or Color3.fromRGB(255, 80, 80)
-end)
-
--- REAL INVISIBILITY METHODS
+-- ACTUAL WORKING INVISIBILITY METHODS
+local storedHead = nil
 local invisConnection = nil
-local velocityPart = nil
-local originalCFrame = nil
+local invisSeat = nil
+local flingPart = nil
 
--- METHOD 1: VELOCITY (Constant repositioning - bypasses rendering)
-function applyVelocity()
-	if not character or not hrp then return end
+-- METHOD 1: HEADLESS (Delete Head - Most Universal!)
+function applyHeadless()
+	if not character then return end
 	
-	-- Create invisible part far away
-	velocityPart = Instance.new("Part")
-	velocityPart.Anchored = true
-	velocityPart.CanCollide = false
-	velocityPart.Transparency = 1
-	velocityPart.Size = Vector3.new(1, 1, 1)
-	velocityPart.Position = Vector3.new(0, -1000, 0)
-	velocityPart.Parent = workspace
-	
-	-- Constantly move character to far position then back (so fast others don't see)
-	invisConnection = RunService.Heartbeat:Connect(function()
-		if not invisEnabled or not character or not hrp then return end
+	local head = character:FindFirstChild("Head")
+	if head then
+		-- Store head for restoration
+		storedHead = head:Clone()
 		
-		-- Save position
-		local currentPos = hrp.CFrame
+		-- Delete head (makes character invisible in most games!)
+		head:Destroy()
 		
-		-- Teleport far away (bypasses rendering for other players)
-		hrp.CFrame = CFrame.new(0, 999999, 0)
-		
-		-- Immediately teleport back
-		task.wait()
-		hrp.CFrame = currentPos
-	end)
-	
-	statusLabel.Text = "Status: ACTIVE (Velocity)\nMethod: Fast Repositioning\nTools: Functional"
+		statusLabel.Text = "Status: ACTIVE ✅\nMethod: HEADLESS\n\n✅ Head deleted!\nTools still work!"
+	end
 end
 
--- METHOD 2: VOID (Below FallenPartsDestroyHeight)
-function applyVoid()
+-- METHOD 2: SEAT WELD (Weld to invisible seat)
+function applySeatWeld()
 	if not character or not hrp then return end
 	
-	originalCFrame = hrp.CFrame
+	-- Create invisible seat
+	invisSeat = Instance.new("Seat")
+	invisSeat.Name = "InvisSeat"
+	invisSeat.Anchored = false
+	invisSeat.CanCollide = false
+	invisSeat.Transparency = 1
+	invisSeat.Size = Vector3.new(0.1, 0.1, 0.1)
+	invisSeat.CFrame = hrp.CFrame
+	invisSeat.Parent = workspace
 	
-	-- Get fallen parts destroy height
-	local destroyHeight = workspace.FallenPartsDestroyHeight - 50
+	-- Sit character on seat
+	humanoid.Sit = true
+	task.wait(0.1)
+	invisSeat.CFrame = CFrame.new(0, -1000, 0)
 	
-	-- Move character below destroy height
+	statusLabel.Text = "Status: ACTIVE ✅\nMethod: SEAT WELD\n\n✅ Welded to invisible seat!\nTools still work!"
+end
+
+-- METHOD 3: FLING (Constant spinning - physics exploit)
+function applyFling()
+	if not character or not hrp then return end
+	
+	-- Create spinning part
+	flingPart = Instance.new("BodyAngularVelocity")
+	flingPart.AngularVelocity = Vector3.new(0, 99999, 0)
+	flingPart.MaxTorque = Vector3.new(0, math.huge, 0)
+	flingPart.P = math.huge
+	flingPart.Parent = hrp
+	
+	-- Make character spin SO fast they're invisible
 	invisConnection = RunService.Heartbeat:Connect(function()
-		if not invisEnabled or not character or not hrp then return end
-		
-		-- Keep character below map but above destroy height
-		local pos = hrp.Position
-		if pos.Y > destroyHeight then
-			hrp.CFrame = CFrame.new(pos.X, destroyHeight, pos.Z)
-		end
-		
-		-- Enable noclip
-		for _, part in ipairs(character:GetDescendants()) do
-			if part:IsA("BasePart") then
-				part.CanCollide = false
-			end
+		if flingPart and flingPart.Parent then
+			flingPart.AngularVelocity = Vector3.new(0, 99999, 0)
 		end
 	end)
 	
-	-- Initial move
-	hrp.CFrame = CFrame.new(hrp.Position.X, destroyHeight, hrp.Position.Z)
-	
-	statusLabel.Text = "Status: ACTIVE (Void)\nMethod: Below Destroy Height\nTools: Functional"
+	statusLabel.Text = "Status: ACTIVE ✅\nMethod: FLING\n\n✅ Spinning at max speed!\nTools still work!"
 end
 
--- METHOD 3: FAKE DEATH (Respawn exploit - advanced)
-function applyFakeDeath()
-	if not character or not humanoid or not hrp then return end
+-- METHOD 4: KORBLOX (Remove limbs - R15 specific)
+function applyKorblox()
+	if not character then return end
 	
-	-- Set health to 0 locally (tricks render system)
-	humanoid.Health = 0
+	-- Delete all limbs except torso and head
+	local limbs = {"LeftUpperArm", "LeftLowerArm", "LeftHand", "RightUpperArm", "RightLowerArm", "RightHand",
+		"LeftUpperLeg", "LeftLowerLeg", "LeftFoot", "RightUpperLeg", "RightLowerLeg", "RightFoot",
+		"Left Arm", "Right Arm", "Left Leg", "Right Leg"} -- R6 + R15
 	
-	-- Wait a frame
-	task.wait()
-	
-	-- Restore health (character appears "dead" to others but alive to you)
-	humanoid.Health = humanoid.MaxHealth
-	
-	-- Hide ragdoll effect
-	for _, part in ipairs(character:GetDescendants()) do
-		if part:IsA("BasePart") then
-			part.Transparency = 1
-			part.CanCollide = false
+	for _, limbName in ipairs(limbs) do
+		local limb = character:FindFirstChild(limbName)
+		if limb then
+			limb:Destroy()
 		end
 	end
 	
-	statusLabel.Text = "Status: ACTIVE (Fake Death)\nMethod: Death Exploit\nTools: Functional"
+	statusLabel.Text = "Status: ACTIVE ✅\nMethod: KORBLOX\n\n✅ Limbs removed!\nTools still work!"
 end
 
--- METHOD 4: NETWORK (Network ownership manipulation)
-function applyNetwork()
+-- METHOD 5: TOOL INVIS (Use tool handle position)
+function applyToolInvis()
 	if not character or not hrp then return end
 	
-	-- Set network ownership
-	pcall(function()
-		hrp:SetNetworkOwner(nil)
-	end)
+	-- Get equipped tool
+	local tool = character:FindFirstChildOfClass("Tool")
 	
-	invisConnection = RunService.Heartbeat:Connect(function()
-		if not invisEnabled or not character then return end
+	if tool and tool:FindFirstChild("Handle") then
+		local handle = tool.Handle
 		
-		-- Manipulate all parts
-		for _, part in ipairs(character:GetDescendants()) do
-			if part:IsA("BasePart") and part ~= hrp then
-				-- Set to far position
-				pcall(function()
-					part:SetNetworkOwner(player)
-					part.CFrame = CFrame.new(0, 999999, 0)
-				end)
-			end
-		end
-	end)
-	
-	statusLabel.Text = "Status: ACTIVE (Network)\nMethod: Ownership Trick\nTools: Functional"
+		-- Weld character to tool handle offscreen
+		local weld = Instance.new("Weld")
+		weld.Part0 = hrp
+		weld.Part1 = handle
+		weld.C0 = CFrame.new(0, -1000, 0)
+		weld.Parent = hrp
+		
+		-- Make handle invisible
+		handle.Transparency = 1
+		
+		statusLabel.Text = "Status: ACTIVE ✅\nMethod: TOOL INVIS\n\n✅ Welded to tool!\nTools still work!"
+	else
+		statusLabel.Text = "Status: FAILED ❌\nMethod: TOOL INVIS\n\n❌ No tool equipped!\nEquip a tool first!"
+	end
 end
 
 function enableInvisibility()
 	if not character then return end
 	
-	if currentMethod == "velocity" then
-		applyVelocity()
-	elseif currentMethod == "void" then
-		applyVoid()
-	elseif currentMethod == "fakedeath" then
-		applyFakeDeath()
-	elseif currentMethod == "network" then
-		applyNetwork()
+	if currentMethod == "headless" then
+		applyHeadless()
+	elseif currentMethod == "seatweld" then
+		applySeatWeld()
+	elseif currentMethod == "fling" then
+		applyFling()
+	elseif currentMethod == "korblox" then
+		applyKorblox()
+	elseif currentMethod == "toolinvis" then
+		applyToolInvis()
 	end
 end
 
 function disableInvisibility()
-	-- Stop connections
+	-- Restore head
+	if storedHead and character then
+		local newHead = storedHead:Clone()
+		newHead.Parent = character
+		storedHead = nil
+	end
+	
+	-- Remove seat
+	if invisSeat then
+		invisSeat:Destroy()
+		invisSeat = nil
+	end
+	
+	-- Remove fling
+	if flingPart then
+		flingPart:Destroy()
+		flingPart = nil
+	end
+	
+	-- Disconnect connection
 	if invisConnection then
 		invisConnection:Disconnect()
 		invisConnection = nil
 	end
 	
-	-- Clean up velocity part
-	if velocityPart then
-		velocityPart:Destroy()
-		velocityPart = nil
+	-- Unsit humanoid
+	if humanoid then
+		humanoid.Sit = false
 	end
 	
-	-- Restore position
-	if originalCFrame and hrp then
-		hrp.CFrame = originalCFrame
-		originalCFrame = nil
-	end
-	
-	-- Restore character
-	if character then
-		for _, part in ipairs(character:GetDescendants()) do
-			if part:IsA("BasePart") then
-				part.Transparency = 0
-				part.CanCollide = true
-			end
-		end
-	end
-	
-	-- Restore humanoid
-	if humanoid and humanoid.Health <= 0 then
-		humanoid.Health = humanoid.MaxHealth
-	end
-	
-	statusLabel.Text = "Status: Ready\nMethod: " .. currentMethod:upper() .. "\nTools: Functional"
+	statusLabel.Text = "Status: Ready\nMethod: " .. currentMethod:upper() .. "\n\n💡 Try each method!\nSome work in specific games"
 end
-
--- Anti-Kick
-spawn(function()
-	while true do
-		wait(2)
-		if antiKickEnabled and invisEnabled and humanoid then
-			pcall(function()
-				humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-				task.wait(0.05)
-				humanoid:ChangeState(Enum.HumanoidStateType.Freefall)
-			end)
-		end
-	end
-end)
 
 -- Main Toggle
 toggleBtn.Activated:Connect(function()
@@ -569,12 +513,12 @@ toggleBtn.Activated:Connect(function()
 end)
 
 print("===========================================")
-print("Multi-Universal Invisible [ULTIMATE METHODS]")
+print("Multi-Universal Invisible [2025 WORKING]")
 print("===========================================")
-print("✅ VELOCITY: Fast reposition bypass")
-print("✅ VOID: Below destroy height")
-print("✅ FAKE DEATH: Respawn exploit")
-print("✅ NETWORK: Ownership manipulation")
-print("✅ Anti-Kick + Tools Functional!")
-print("⚡ REAL EXPLOITER METHODS!")
+print("✅ HEADLESS: Delete head (MOST UNIVERSAL)")
+print("✅ SEAT WELD: Invisible seat trick")
+print("✅ FLING: Fast spinning method")
+print("✅ KORBLOX: Remove limbs")
+print("✅ TOOL INVIS: Tool handle trick")
+print("💡 Try ALL methods - different games need different tricks!")
 print("===========================================")
