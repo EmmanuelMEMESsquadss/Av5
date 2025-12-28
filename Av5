@@ -77,24 +77,34 @@ badgeText.TextColor3 = Color3.new(1, 1, 1)
 badgeText.ZIndex = 12
 badgeText.Parent = badge
 
--- Main Frame
+-- Main Frame (ADJUSTED SIZE AND POSITION)
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 350, 0, 500)
-mainFrame.Position = UDim2.new(0.5, -175, 0.5, -250)
-mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+mainFrame.Size = UDim2.new(0, 340, 0, 480)
+mainFrame.Position = UDim2.new(0.5, -170, 0.5, -240)
+mainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 25)
 mainFrame.BorderSizePixel = 0
 mainFrame.Visible = false
 mainFrame.ZIndex = 5
 mainFrame.Parent = gui
 
 local frameCorner = Instance.new("UICorner")
-frameCorner.CornerRadius = UDim.new(0, 12)
+frameCorner.CornerRadius = UDim.new(0, 14)
 frameCorner.Parent = mainFrame
 
 local frameStroke = Instance.new("UIStroke")
-frameStroke.Color = Color3.fromRGB(80, 120, 200)
-frameStroke.Thickness = 2
+frameStroke.Color = Color3.fromRGB(100, 150, 255)
+frameStroke.Thickness = 2.5
+frameStroke.Transparency = 0.3
 frameStroke.Parent = mainFrame
+
+-- Gradient overlay for depth
+local frameGradient = Instance.new("UIGradient")
+frameGradient.Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(25, 25, 35)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(15, 15, 22))
+})
+frameGradient.Rotation = 90
+frameGradient.Parent = mainFrame
 
 -- Background blur
 local blur = Instance.new("Frame")
@@ -106,38 +116,69 @@ blur.Visible = false
 blur.ZIndex = 4
 blur.Parent = gui
 
--- Top bar
+-- Top bar (IMPROVED)
 local topBar = Instance.new("Frame")
-topBar.Size = UDim2.new(1, 0, 0, 50)
-topBar.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+topBar.Size = UDim2.new(1, 0, 0, 55)
+topBar.BackgroundColor3 = Color3.fromRGB(30, 30, 42)
 topBar.BorderSizePixel = 0
 topBar.ZIndex = 6
 topBar.Parent = mainFrame
 
 local topCorner = Instance.new("UICorner")
-topCorner.CornerRadius = UDim.new(0, 12)
+topCorner.CornerRadius = UDim.new(0, 14)
 topCorner.Parent = topBar
+
+local topGradient = Instance.new("UIGradient")
+topGradient.Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(60, 100, 200)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(100, 60, 200))
+})
+topGradient.Rotation = 45
+topGradient.Parent = topBar
+
+-- Icon next to title
+local titleIcon = Instance.new("TextLabel")
+titleIcon.Size = UDim2.new(0, 30, 0, 30)
+titleIcon.Position = UDim2.new(0, 12, 0, 12)
+titleIcon.BackgroundTransparency = 1
+titleIcon.Text = "🌐"
+titleIcon.TextSize = 22
+titleIcon.ZIndex = 7
+titleIcon.Parent = topBar
 
 -- Title
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, -60, 1, 0)
-title.Position = UDim2.new(0, 15, 0, 0)
+title.Size = UDim2.new(1, -100, 1, 0)
+title.Position = UDim2.new(0, 45, 0, 0)
 title.BackgroundTransparency = 1
-title.Text = "🌐 TELEPORT"
-title.TextSize = 18
+title.Text = "TELEPORT"
+title.TextSize = 19
 title.Font = Enum.Font.GothamBold
-title.TextColor3 = Color3.fromRGB(100, 200, 255)
+title.TextColor3 = Color3.new(1, 1, 1)
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.ZIndex = 7
 title.Parent = topBar
 
--- Close button
+-- Subtitle
+local subtitle = Instance.new("TextLabel")
+subtitle.Size = UDim2.new(1, -100, 0, 15)
+subtitle.Position = UDim2.new(0, 45, 0, 30)
+subtitle.BackgroundTransparency = 1
+subtitle.Text = "Universal System"
+subtitle.TextSize = 10
+subtitle.Font = Enum.Font.Gotham
+subtitle.TextColor3 = Color3.fromRGB(200, 200, 200)
+subtitle.TextXAlignment = Enum.TextXAlignment.Left
+subtitle.ZIndex = 7
+subtitle.Parent = topBar
+
+-- Close button (BETTER DESIGN)
 local closeBtn = Instance.new("TextButton")
-closeBtn.Size = UDim2.new(0, 40, 0, 40)
-closeBtn.Position = UDim2.new(1, -45, 0, 5)
-closeBtn.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+closeBtn.Size = UDim2.new(0, 42, 0, 42)
+closeBtn.Position = UDim2.new(1, -48, 0, 6)
+closeBtn.BackgroundColor3 = Color3.fromRGB(255, 70, 70)
 closeBtn.Text = "✕"
-closeBtn.TextSize = 18
+closeBtn.TextSize = 20
 closeBtn.Font = Enum.Font.GothamBold
 closeBtn.TextColor3 = Color3.new(1, 1, 1)
 closeBtn.BorderSizePixel = 0
@@ -145,14 +186,20 @@ closeBtn.ZIndex = 7
 closeBtn.Parent = topBar
 
 local closeCorner = Instance.new("UICorner")
-closeCorner.CornerRadius = UDim.new(0.2, 0)
+closeCorner.CornerRadius = UDim.new(0.25, 0)
 closeCorner.Parent = closeBtn
 
--- TP Tool Section
+local closeStroke = Instance.new("UIStroke")
+closeStroke.Color = Color3.fromRGB(255, 100, 100)
+closeStroke.Thickness = 1.5
+closeStroke.Transparency = 0.5
+closeStroke.Parent = closeBtn
+
+-- TP Tool Section (IMPROVED)
 local toolFrame = Instance.new("Frame")
-toolFrame.Size = UDim2.new(1, -20, 0, 80)
-toolFrame.Position = UDim2.new(0, 10, 0, 60)
-toolFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+toolFrame.Size = UDim2.new(1, -20, 0, 75)
+toolFrame.Position = UDim2.new(0, 10, 0, 65)
+toolFrame.BackgroundColor3 = Color3.fromRGB(28, 28, 38)
 toolFrame.BorderSizePixel = 0
 toolFrame.ZIndex = 6
 toolFrame.Parent = mainFrame
@@ -161,18 +208,24 @@ local toolFrameCorner = Instance.new("UICorner")
 toolFrameCorner.CornerRadius = UDim.new(0, 10)
 toolFrameCorner.Parent = toolFrame
 
+local toolStroke = Instance.new("UIStroke")
+toolStroke.Color = Color3.fromRGB(80, 120, 200)
+toolStroke.Thickness = 1.5
+toolStroke.Transparency = 0.6
+toolStroke.Parent = toolFrame
+
 local toolIcon = Instance.new("TextLabel")
-toolIcon.Size = UDim2.new(0, 50, 0, 50)
-toolIcon.Position = UDim2.new(0, 10, 0, 15)
+toolIcon.Size = UDim2.new(0, 45, 0, 45)
+toolIcon.Position = UDim2.new(0, 12, 0, 15)
 toolIcon.BackgroundTransparency = 1
 toolIcon.Text = "🎯"
-toolIcon.TextSize = 35
+toolIcon.TextSize = 32
 toolIcon.ZIndex = 7
 toolIcon.Parent = toolFrame
 
 local toolTitle = Instance.new("TextLabel")
-toolTitle.Size = UDim2.new(1, -170, 0, 25)
-toolTitle.Position = UDim2.new(0, 65, 0, 12)
+toolTitle.Size = UDim2.new(1, -160, 0, 22)
+toolTitle.Position = UDim2.new(0, 62, 0, 10)
 toolTitle.BackgroundTransparency = 1
 toolTitle.Text = "TP TOOL"
 toolTitle.TextSize = 14
@@ -183,22 +236,22 @@ toolTitle.ZIndex = 7
 toolTitle.Parent = toolFrame
 
 local toolDesc = Instance.new("TextLabel")
-toolDesc.Size = UDim2.new(1, -170, 0, 30)
-toolDesc.Position = UDim2.new(0, 65, 0, 35)
+toolDesc.Size = UDim2.new(1, -160, 0, 28)
+toolDesc.Position = UDim2.new(0, 62, 0, 32)
 toolDesc.BackgroundTransparency = 1
-toolDesc.Text = "Tap anywhere to teleport"
+toolDesc.Text = "Tap anywhere on screen"
 toolDesc.TextSize = 11
 toolDesc.Font = Enum.Font.Gotham
-toolDesc.TextColor3 = Color3.fromRGB(150, 150, 150)
+toolDesc.TextColor3 = Color3.fromRGB(160, 160, 160)
 toolDesc.TextXAlignment = Enum.TextXAlignment.Left
 toolDesc.TextWrapped = true
 toolDesc.ZIndex = 7
 toolDesc.Parent = toolFrame
 
 local equipBtn = Instance.new("TextButton")
-equipBtn.Size = UDim2.new(0, 80, 0, 30)
-equipBtn.Position = UDim2.new(1, -90, 0, 25)
-equipBtn.BackgroundColor3 = Color3.fromRGB(60, 150, 255)
+equipBtn.Size = UDim2.new(0, 78, 0, 32)
+equipBtn.Position = UDim2.new(1, -88, 0, 22)
+equipBtn.BackgroundColor3 = Color3.fromRGB(70, 160, 255)
 equipBtn.Text = "EQUIP"
 equipBtn.TextSize = 12
 equipBtn.Font = Enum.Font.GothamBold
@@ -211,9 +264,15 @@ local equipCorner = Instance.new("UICorner")
 equipCorner.CornerRadius = UDim.new(0, 8)
 equipCorner.Parent = equipBtn
 
--- Action buttons
+local equipStroke = Instance.new("UIStroke")
+equipStroke.Color = Color3.fromRGB(100, 180, 255)
+equipStroke.Thickness = 1.5
+equipStroke.Transparency = 0.5
+equipStroke.Parent = equipBtn
+
+-- Action buttons (IMPROVED)
 local saveBtn = Instance.new("TextButton")
-saveBtn.Size = UDim2.new(0.48, 0, 0, 40)
+saveBtn.Size = UDim2.new(0.48, 0, 0, 42)
 saveBtn.Position = UDim2.new(0, 10, 0, 150)
 saveBtn.BackgroundColor3 = Color3.fromRGB(80, 200, 120)
 saveBtn.Text = "💾 SAVE"
@@ -228,8 +287,14 @@ local saveCorner = Instance.new("UICorner")
 saveCorner.CornerRadius = UDim.new(0, 10)
 saveCorner.Parent = saveBtn
 
+local saveStroke = Instance.new("UIStroke")
+saveStroke.Color = Color3.fromRGB(100, 220, 140)
+saveStroke.Thickness = 1.5
+saveStroke.Transparency = 0.5
+saveStroke.Parent = saveBtn
+
 local quickTPBtn = Instance.new("TextButton")
-quickTPBtn.Size = UDim2.new(0.48, 0, 0, 40)
+quickTPBtn.Size = UDim2.new(0.48, 0, 0, 42)
 quickTPBtn.Position = UDim2.new(0.52, 0, 0, 150)
 quickTPBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 50)
 quickTPBtn.Text = "⚡ QUICK TP"
@@ -244,11 +309,17 @@ local quickCorner = Instance.new("UICorner")
 quickCorner.CornerRadius = UDim.new(0, 10)
 quickCorner.Parent = quickTPBtn
 
--- Settings
+local quickStroke = Instance.new("UIStroke")
+quickStroke.Color = Color3.fromRGB(255, 180, 80)
+quickStroke.Thickness = 1.5
+quickStroke.Transparency = 0.5
+quickStroke.Parent = quickTPBtn
+
+-- Settings (IMPROVED + NEW FEATURE)
 local settingsFrame = Instance.new("Frame")
-settingsFrame.Size = UDim2.new(1, -20, 0, 35)
-settingsFrame.Position = UDim2.new(0, 10, 0, 200)
-settingsFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+settingsFrame.Size = UDim2.new(1, -20, 0, 36)
+settingsFrame.Position = UDim2.new(0, 10, 0, 202)
+settingsFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 32)
 settingsFrame.BorderSizePixel = 0
 settingsFrame.ZIndex = 6
 settingsFrame.Parent = mainFrame
@@ -256,6 +327,12 @@ settingsFrame.Parent = mainFrame
 local settingsCorner = Instance.new("UICorner")
 settingsCorner.CornerRadius = UDim.new(0, 8)
 settingsCorner.Parent = settingsFrame
+
+local settingsStroke = Instance.new("UIStroke")
+settingsStroke.Color = Color3.fromRGB(60, 80, 150)
+settingsStroke.Thickness = 1
+settingsStroke.Transparency = 0.7
+settingsStroke.Parent = settingsFrame
 
 local antiBtn = Instance.new("TextButton")
 antiBtn.Size = UDim2.new(0.32, -3, 1, -6)
@@ -273,6 +350,12 @@ local antiCorner = Instance.new("UICorner")
 antiCorner.CornerRadius = UDim.new(0, 6)
 antiCorner.Parent = antiBtn
 
+local antiStroke = Instance.new("UIStroke")
+antiStroke.Color = Color3.fromRGB(100, 255, 120)
+antiStroke.Thickness = 1
+antiStroke.Transparency = 0.5
+antiStroke.Parent = antiBtn
+
 local methodBtn = Instance.new("TextButton")
 methodBtn.Size = UDim2.new(0.32, -3, 1, -6)
 methodBtn.Position = UDim2.new(0.34, 1, 0, 3)
@@ -289,12 +372,18 @@ local methodCorner = Instance.new("UICorner")
 methodCorner.CornerRadius = UDim.new(0, 6)
 methodCorner.Parent = methodBtn
 
+local methodStroke = Instance.new("UIStroke")
+methodStroke.Color = Color3.fromRGB(120, 170, 255)
+methodStroke.Thickness = 1
+methodStroke.Transparency = 0.5
+methodStroke.Parent = methodBtn
+
 local clearBtn = Instance.new("TextButton")
 clearBtn.Size = UDim2.new(0.32, -3, 1, -6)
 clearBtn.Position = UDim2.new(0.68, 2, 0, 3)
 clearBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
 clearBtn.Text = "🗑️ Clear"
-clearBtn.TextSize = 11
+clearBtn.TextSize = 10
 clearBtn.Font = Enum.Font.GothamBold
 clearBtn.TextColor3 = Color3.new(1, 1, 1)
 clearBtn.BorderSizePixel = 0
@@ -305,26 +394,65 @@ local clearCorner = Instance.new("UICorner")
 clearCorner.CornerRadius = UDim.new(0, 6)
 clearCorner.Parent = clearBtn
 
--- Locations header
+local clearStroke = Instance.new("UIStroke")
+clearStroke.Color = Color3.fromRGB(255, 120, 120)
+clearStroke.Thickness = 1
+clearStroke.Transparency = 0.5
+clearStroke.Parent = clearBtn
+
+-- Locations header (IMPROVED)
 local locHeader = Instance.new("TextLabel")
-locHeader.Size = UDim2.new(1, -20, 0, 25)
-locHeader.Position = UDim2.new(0, 10, 0, 245)
+locHeader.Size = UDim2.new(1, -20, 0, 26)
+locHeader.Position = UDim2.new(0, 10, 0, 248)
 locHeader.BackgroundTransparency = 1
 locHeader.Text = "📍 SAVED (0/20)"
 locHeader.TextSize = 13
 locHeader.Font = Enum.Font.GothamBold
-locHeader.TextColor3 = Color3.fromRGB(200, 200, 200)
+locHeader.TextColor3 = Color3.fromRGB(220, 220, 220)
 locHeader.TextXAlignment = Enum.TextXAlignment.Left
 locHeader.ZIndex = 6
 locHeader.Parent = mainFrame
 
--- Locations scroll
+-- NEW FEATURE: Export/Import buttons
+local exportBtn = Instance.new("TextButton")
+exportBtn.Size = UDim2.new(0, 50, 0, 22)
+exportBtn.Position = UDim2.new(1, -115, 0, 2)
+exportBtn.BackgroundColor3 = Color3.fromRGB(100, 180, 100)
+exportBtn.Text = "📤"
+exportBtn.TextSize = 14
+exportBtn.Font = Enum.Font.GothamBold
+exportBtn.TextColor3 = Color3.new(1, 1, 1)
+exportBtn.BorderSizePixel = 0
+exportBtn.ZIndex = 7
+exportBtn.Parent = locHeader
+
+local expCorner = Instance.new("UICorner")
+expCorner.CornerRadius = UDim.new(0, 6)
+expCorner.Parent = exportBtn
+
+local importBtn = Instance.new("TextButton")
+importBtn.Size = UDim2.new(0, 50, 0, 22)
+importBtn.Position = UDim2.new(1, -60, 0, 2)
+importBtn.BackgroundColor3 = Color3.fromRGB(100, 150, 200)
+importBtn.Text = "📥"
+importBtn.TextSize = 14
+importBtn.Font = Enum.Font.GothamBold
+importBtn.TextColor3 = Color3.new(1, 1, 1)
+importBtn.BorderSizePixel = 0
+importBtn.ZIndex = 7
+importBtn.Parent = locHeader
+
+local impCorner = Instance.new("UICorner")
+impCorner.CornerRadius = UDim.new(0, 6)
+impCorner.Parent = importBtn
+
+-- Locations scroll (ADJUSTED)
 local locScroll = Instance.new("ScrollingFrame")
-locScroll.Size = UDim2.new(1, -20, 1, -280)
-locScroll.Position = UDim2.new(0, 10, 0, 270)
-locScroll.BackgroundColor3 = Color3.fromRGB(15, 15, 22)
+locScroll.Size = UDim2.new(1, -20, 1, -284)
+locScroll.Position = UDim2.new(0, 10, 0, 276)
+locScroll.BackgroundColor3 = Color3.fromRGB(13, 13, 20)
 locScroll.BorderSizePixel = 0
-locScroll.ScrollBarThickness = 6
+locScroll.ScrollBarThickness = 5
 locScroll.ScrollBarImageColor3 = Color3.fromRGB(100, 150, 255)
 locScroll.ZIndex = 6
 locScroll.Parent = mainFrame
@@ -332,6 +460,12 @@ locScroll.Parent = mainFrame
 local scrollCorner = Instance.new("UICorner")
 scrollCorner.CornerRadius = UDim.new(0, 8)
 scrollCorner.Parent = locScroll
+
+local scrollStroke = Instance.new("UIStroke")
+scrollStroke.Color = Color3.fromRGB(40, 60, 100)
+scrollStroke.Thickness = 1
+scrollStroke.Transparency = 0.8
+scrollStroke.Parent = locScroll
 
 local scrollLayout = Instance.new("UIListLayout")
 scrollLayout.Padding = UDim.new(0, 5)
@@ -411,61 +545,77 @@ function updateBadge()
 	locHeader.Text = "📍 SAVED (" .. #savedLocations .. "/20)"
 end
 
--- Create location entry
+-- Create location entry (MUCH BETTER DESIGN!)
 function createEntry(location, index)
 	local entry = Instance.new("Frame")
-	entry.Size = UDim2.new(1, -10, 0, 60)
-	entry.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+	entry.Size = UDim2.new(1, -10, 0, 58)
+	entry.BackgroundColor3 = Color3.fromRGB(28, 28, 38)
 	entry.BorderSizePixel = 0
 	entry.ZIndex = 7
 	entry.Parent = locScroll
 	
 	local entryCorner = Instance.new("UICorner")
-	entryCorner.CornerRadius = UDim.new(0, 8)
+	entryCorner.CornerRadius = UDim.new(0, 10)
 	entryCorner.Parent = entry
 	
+	local entryStroke = Instance.new("UIStroke")
+	entryStroke.Color = Color3.fromRGB(60, 100, 180)
+	entryStroke.Thickness = 1.2
+	entryStroke.Transparency = 0.7
+	entryStroke.Parent = entry
+	
+	-- Gradient for depth
+	local entryGradient = Instance.new("UIGradient")
+	entryGradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(32, 32, 42)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(24, 24, 34))
+	})
+	entryGradient.Rotation = 90
+	entryGradient.Parent = entry
+	
 	local name = Instance.new("TextLabel")
-	name.Size = UDim2.new(1, -80, 0, 20)
+	name.Size = UDim2.new(1, -80, 0, 19)
 	name.Position = UDim2.new(0, 10, 0, 5)
 	name.BackgroundTransparency = 1
 	name.Text = location.name
 	name.TextSize = 13
 	name.Font = Enum.Font.GothamBold
-	name.TextColor3 = Color3.fromRGB(100, 200, 255)
+	name.TextColor3 = Color3.fromRGB(120, 200, 255)
 	name.TextXAlignment = Enum.TextXAlignment.Left
 	name.ZIndex = 8
 	name.Parent = entry
 	
 	local pos = Instance.new("TextLabel")
-	pos.Size = UDim2.new(1, -80, 0, 15)
-	pos.Position = UDim2.new(0, 10, 0, 25)
+	pos.Size = UDim2.new(1, -80, 0, 14)
+	pos.Position = UDim2.new(0, 10, 0, 24)
 	pos.BackgroundTransparency = 1
 	pos.Text = string.format("X:%.0f Y:%.0f Z:%.0f", location.position.X, location.position.Y, location.position.Z)
 	pos.TextSize = 10
 	pos.Font = Enum.Font.Gotham
-	pos.TextColor3 = Color3.fromRGB(150, 150, 150)
+	pos.TextColor3 = Color3.fromRGB(160, 160, 160)
 	pos.TextXAlignment = Enum.TextXAlignment.Left
 	pos.ZIndex = 8
 	pos.Parent = entry
 	
 	local time = Instance.new("TextLabel")
-	time.Size = UDim2.new(1, -80, 0, 15)
-	time.Position = UDim2.new(0, 10, 0, 40)
+	time.Size = UDim2.new(1, -80, 0, 14)
+	time.Position = UDim2.new(0, 10, 0, 38)
 	time.BackgroundTransparency = 1
 	time.Text = "⏰ " .. location.time
 	time.TextSize = 9
 	time.Font = Enum.Font.Gotham
-	time.TextColor3 = Color3.fromRGB(120, 120, 120)
+	time.TextColor3 = Color3.fromRGB(130, 130, 130)
 	time.TextXAlignment = Enum.TextXAlignment.Left
 	time.ZIndex = 8
 	time.Parent = entry
 	
+	-- TP button (IMPROVED)
 	local tpBtn = Instance.new("TextButton")
-	tpBtn.Size = UDim2.new(0, 32, 0, 25)
-	tpBtn.Position = UDim2.new(1, -70, 0, 10)
+	tpBtn.Size = UDim2.new(0, 34, 0, 26)
+	tpBtn.Position = UDim2.new(1, -72, 0, 12)
 	tpBtn.BackgroundColor3 = Color3.fromRGB(100, 200, 255)
 	tpBtn.Text = "→"
-	tpBtn.TextSize = 16
+	tpBtn.TextSize = 17
 	tpBtn.Font = Enum.Font.GothamBold
 	tpBtn.TextColor3 = Color3.new(1, 1, 1)
 	tpBtn.BorderSizePixel = 0
@@ -473,15 +623,22 @@ function createEntry(location, index)
 	tpBtn.Parent = entry
 	
 	local tpCorner = Instance.new("UICorner")
-	tpCorner.CornerRadius = UDim.new(0, 6)
+	tpCorner.CornerRadius = UDim.new(0, 7)
 	tpCorner.Parent = tpBtn
 	
+	local tpStroke = Instance.new("UIStroke")
+	tpStroke.Color = Color3.fromRGB(120, 220, 255)
+	tpStroke.Thickness = 1.2
+	tpStroke.Transparency = 0.5
+	tpStroke.Parent = tpBtn
+	
+	-- Delete button (MUCH BETTER!)
 	local delBtn = Instance.new("TextButton")
-	delBtn.Size = UDim2.new(0, 32, 0, 25)
-	delBtn.Position = UDim2.new(1, -35, 0, 10)
+	delBtn.Size = UDim2.new(0, 34, 0, 26)
+	delBtn.Position = UDim2.new(1, -35, 0, 12)
 	delBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
 	delBtn.Text = "✕"
-	delBtn.TextSize = 14
+	delBtn.TextSize = 15
 	delBtn.Font = Enum.Font.GothamBold
 	delBtn.TextColor3 = Color3.new(1, 1, 1)
 	delBtn.BorderSizePixel = 0
@@ -489,8 +646,14 @@ function createEntry(location, index)
 	delBtn.Parent = entry
 	
 	local delCorner = Instance.new("UICorner")
-	delCorner.CornerRadius = UDim.new(0, 6)
+	delCorner.CornerRadius = UDim.new(0, 7)
 	delCorner.Parent = delBtn
+	
+	local delStroke = Instance.new("UIStroke")
+	delStroke.Color = Color3.fromRGB(255, 120, 120)
+	delStroke.Thickness = 1.2
+	delStroke.Transparency = 0.5
+	delStroke.Parent = delBtn
 	
 	tpBtn.MouseButton1Click:Connect(function()
 		teleportTo(location.position)
@@ -517,10 +680,70 @@ function refreshList()
 		createEntry(loc, i)
 	end
 	
-	locScroll.CanvasSize = UDim2.new(0, 0, 0, #savedLocations * 65)
+	locScroll.CanvasSize = UDim2.new(0, 0, 0, #savedLocations * 63)
 end
 
--- Save location
+-- NEW FEATURE: Export locations
+exportBtn.MouseButton1Click:Connect(function()
+	if #savedLocations == 0 then
+		exportBtn.Text = "❌"
+		task.wait(0.5)
+		exportBtn.Text = "📤"
+		return
+	end
+	
+	local exportData = game:GetService("HttpService"):JSONEncode(savedLocations)
+	setclipboard(exportData)
+	
+	exportBtn.Text = "✓"
+	exportBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
+	task.wait(0.8)
+	exportBtn.Text = "📤"
+	exportBtn.BackgroundColor3 = Color3.fromRGB(100, 180, 100)
+	
+	-- Show notification
+	local notif = Instance.new("TextLabel")
+	notif.Size = UDim2.new(0, 220, 0, 40)
+	notif.Position = UDim2.new(0.5, -110, 0.5, -20)
+	notif.BackgroundColor3 = Color3.fromRGB(80, 200, 120)
+	notif.Text = "✓ Copied to clipboard!"
+	notif.TextSize = 13
+	notif.Font = Enum.Font.GothamBold
+	notif.TextColor3 = Color3.new(1, 1, 1)
+	notif.BorderSizePixel = 0
+	notif.ZIndex = 100
+	notif.Parent = gui
+	
+	local notifCorner = Instance.new("UICorner")
+	notifCorner.CornerRadius = UDim.new(0, 10)
+	notifCorner.Parent = notif
+	
+	task.wait(2)
+	notif:Destroy()
+end)
+
+-- NEW FEATURE: Import locations
+importBtn.MouseButton1Click:Connect(function()
+	local success, importData = pcall(function()
+		return game:GetService("HttpService"):JSONDecode(getclipboard())
+	end)
+	
+	if success and type(importData) == "table" then
+		savedLocations = importData
+		refreshList()
+		updateBadge()
+		
+		importBtn.Text = "✓"
+		importBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
+		task.wait(0.8)
+		importBtn.Text = "📥"
+		importBtn.BackgroundColor3 = Color3.fromRGB(100, 150, 200)
+	else
+		importBtn.Text = "❌"
+		task.wait(0.8)
+		importBtn.Text = "📥"
+	end
+end)
 saveBtn.MouseButton1Click:Connect(function()
 	if not hrp then
 		saveBtn.Text = "❌ NO CHAR"
