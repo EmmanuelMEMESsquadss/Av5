@@ -1,5 +1,5 @@
 -- LocalScript (StarterPlayerScripts)
--- Universal Teleport System [MOBILE + PC]
+-- Universal Teleport System [CLEAN + TP TOOL]
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -9,13 +9,13 @@ local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 local character, humanoid, hrp
 
-local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
-
 -- Teleport settings
 local savedLocations = {}
-local MAX_LOCATIONS = 10
+local MAX_LOCATIONS = 20
 local antiTPBack = true
-local tpMethod = "cframe" -- cframe, tween, velocity
+local tpMethod = "cframe"
+local toolEquipped = false
+local tpToolActive = false
 
 local function setupCharacter(char)
 	character = char
@@ -30,52 +30,62 @@ player.CharacterAdded:Connect(setupCharacter)
 local gui = Instance.new("ScreenGui")
 gui.Name = "UniversalTeleportUI"
 gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- Tool/Inventory style button (bottom right like mobile tools)
-local toolBtn = Instance.new("TextButton")
-toolBtn.Size = UDim2.new(0, 70, 0, 70)
-toolBtn.Position = UDim2.new(1, -85, 1, -85)
-toolBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-toolBtn.BorderSizePixel = 0
-toolBtn.Text = ""
-toolBtn.ZIndex = 5
-toolBtn.Active = true
-toolBtn.Parent = gui
+-- Minimized draggable button
+local miniBtn = Instance.new("ImageButton")
+miniBtn.Size = UDim2.new(0, 80, 0, 80)
+miniBtn.Position = UDim2.new(0.5, -40, 1, -100)
+miniBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+miniBtn.BorderSizePixel = 0
+miniBtn.Image = ""
+miniBtn.Active = true
+miniBtn.Draggable = true
+miniBtn.ZIndex = 10
+miniBtn.Parent = gui
 
-local toolCorner = Instance.new("UICorner")
-toolCorner.CornerRadius = UDim.new(0.2, 0)
-toolCorner.Parent = toolBtn
+local miniCorner = Instance.new("UICorner")
+miniCorner.CornerRadius = UDim.new(0.25, 0)
+miniCorner.Parent = miniBtn
 
--- Tool icon
-local toolIcon = Instance.new("ImageLabel")
-toolIcon.Size = UDim2.new(0.6, 0, 0.6, 0)
-toolIcon.Position = UDim2.new(0.2, 0, 0.15, 0)
-toolIcon.BackgroundTransparency = 1
-toolIcon.Image = "rbxassetid://3926305904" -- Teleport icon
-toolIcon.ImageColor3 = Color3.fromRGB(100, 200, 255)
-toolIcon.ScaleType = Enum.ScaleType.Fit
-toolIcon.Parent = toolBtn
+-- Gradient effect
+local miniGradient = Instance.new("UIGradient")
+miniGradient.Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(60, 120, 255)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(120, 60, 255))
+})
+miniGradient.Rotation = 45
+miniGradient.Parent = miniBtn
 
--- Tool label
-local toolLabel = Instance.new("TextLabel")
-toolLabel.Size = UDim2.new(1, 0, 0, 18)
-toolLabel.Position = UDim2.new(0, 0, 1, -20)
-toolLabel.BackgroundTransparency = 1
-toolLabel.Text = "TELEPORT"
-toolLabel.Font = Enum.Font.GothamBold
-toolLabel.TextSize = 9
-toolLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-toolLabel.Parent = toolBtn
+-- Icon
+local miniIcon = Instance.new("ImageLabel")
+miniIcon.Size = UDim2.new(0.5, 0, 0.5, 0)
+miniIcon.Position = UDim2.new(0.25, 0, 0.15, 0)
+miniIcon.BackgroundTransparency = 1
+miniIcon.Image = "rbxassetid://3926305904"
+miniIcon.ImageColor3 = Color3.new(1, 1, 1)
+miniIcon.Parent = miniBtn
 
--- Notification badge (for saved locations count)
+-- Label
+local miniLabel = Instance.new("TextLabel")
+miniLabel.Size = UDim2.new(1, 0, 0, 20)
+miniLabel.Position = UDim2.new(0, 0, 1, -25)
+miniLabel.BackgroundTransparency = 1
+miniLabel.Text = "TELEPORT"
+miniLabel.Font = Enum.Font.GothamBold
+miniLabel.TextSize = 11
+miniLabel.TextColor3 = Color3.new(1, 1, 1)
+miniLabel.Parent = miniBtn
+
+-- Badge
 local badge = Instance.new("Frame")
-badge.Size = UDim2.new(0, 22, 0, 22)
-badge.Position = UDim2.new(1, -8, 0, -8)
-badge.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+badge.Size = UDim2.new(0, 24, 0, 24)
+badge.Position = UDim2.new(1, -10, 0, -10)
+badge.BackgroundColor3 = Color3.fromRGB(255, 70, 70)
 badge.BorderSizePixel = 0
-badge.ZIndex = 6
-badge.Parent = toolBtn
+badge.ZIndex = 11
+badge.Parent = miniBtn
 
 local badgeCorner = Instance.new("UICorner")
 badgeCorner.CornerRadius = UDim.new(0.5, 0)
@@ -86,389 +96,574 @@ badgeLabel.Size = UDim2.new(1, 0, 1, 0)
 badgeLabel.BackgroundTransparency = 1
 badgeLabel.Text = "0"
 badgeLabel.Font = Enum.Font.GothamBold
-badgeLabel.TextSize = 11
+badgeLabel.TextSize = 12
 badgeLabel.TextColor3 = Color3.new(1, 1, 1)
-badgeLabel.ZIndex = 7
+badgeLabel.ZIndex = 12
 badgeLabel.Parent = badge
 
--- Main panel (slides in from right like inventory)
+-- Stroke effect
+local miniStroke = Instance.new("UIStroke")
+miniStroke.Color = Color3.fromRGB(100, 150, 255)
+miniStroke.Thickness = 2
+miniStroke.Transparency = 0.5
+miniStroke.Parent = miniBtn
+
+-- Main panel (modern style)
 local mainPanel = Instance.new("Frame")
-mainPanel.Size = UDim2.new(0, 340, 0, 500)
-mainPanel.Position = UDim2.new(1, 0, 0.5, -250) -- Off-screen initially
-mainPanel.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+mainPanel.Size = UDim2.new(0, 380, 0, 550)
+mainPanel.Position = UDim2.new(0.5, -190, 0.5, -275)
+mainPanel.BackgroundColor3 = Color3.fromRGB(18, 18, 25)
 mainPanel.BorderSizePixel = 0
-mainPanel.ClipsDescendants = true
 mainPanel.Visible = false
 mainPanel.ZIndex = 2
 mainPanel.Parent = gui
 
 local panelCorner = Instance.new("UICorner")
-panelCorner.CornerRadius = UDim.new(0, 12)
+panelCorner.CornerRadius = UDim.new(0, 16)
 panelCorner.Parent = mainPanel
 
--- Panel shadow effect
-local shadow = Instance.new("ImageLabel")
-shadow.Size = UDim2.new(1, 30, 1, 30)
-shadow.Position = UDim2.new(0, -15, 0, -15)
-shadow.BackgroundTransparency = 1
-shadow.Image = "rbxasset://textures/ui/GuiImagePlaceholder.png"
-shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
-shadow.ImageTransparency = 0.7
-shadow.ScaleType = Enum.ScaleType.Slice
-shadow.SliceCenter = Rect.new(10, 10, 118, 118)
-shadow.ZIndex = 1
-shadow.Parent = mainPanel
+-- Panel gradient overlay
+local panelGradient = Instance.new("UIGradient")
+panelGradient.Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(25, 25, 35)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(15, 15, 22))
+})
+panelGradient.Rotation = 90
+panelGradient.Parent = mainPanel
+
+-- Panel stroke
+local panelStroke = Instance.new("UIStroke")
+panelStroke.Color = Color3.fromRGB(60, 100, 200)
+panelStroke.Thickness = 2
+panelStroke.Transparency = 0.3
+panelStroke.Parent = mainPanel
+
+-- Blur background
+local blurFrame = Instance.new("Frame")
+blurFrame.Size = UDim2.new(1, 0, 1, 0)
+blurFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+blurFrame.BackgroundTransparency = 0.5
+blurFrame.BorderSizePixel = 0
+blurFrame.Visible = false
+blurFrame.ZIndex = 1
+blurFrame.Parent = gui
 
 -- Top bar
 local topBar = Instance.new("Frame")
-topBar.Size = UDim2.new(1, 0, 0, 50)
-topBar.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-topBar.BorderSizePixel = 0
+topBar.Size = UDim2.new(1, 0, 0, 60)
+topBar.BackgroundTransparency = 1
 topBar.ZIndex = 3
 topBar.Parent = mainPanel
 
-local topCorner = Instance.new("UICorner")
-topCorner.CornerRadius = UDim.new(0, 12)
-topCorner.Parent = topBar
+-- Title with icon
+local titleIcon = Instance.new("ImageLabel")
+titleIcon.Size = UDim2.new(0, 30, 0, 30)
+titleIcon.Position = UDim2.new(0, 20, 0, 15)
+titleIcon.BackgroundTransparency = 1
+titleIcon.Image = "rbxassetid://3926305904"
+titleIcon.ImageColor3 = Color3.fromRGB(100, 180, 255)
+titleIcon.ZIndex = 4
+titleIcon.Parent = topBar
 
--- Title
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, -100, 1, 0)
-titleLabel.Position = UDim2.new(0, 15, 0, 0)
+titleLabel.Size = UDim2.new(1, -140, 1, 0)
+titleLabel.Position = UDim2.new(0, 55, 0, 0)
 titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "🌐 TELEPORT"
+titleLabel.Text = "TELEPORT SYSTEM"
 titleLabel.Font = Enum.Font.GothamBold
-titleLabel.TextSize = 18
-titleLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
+titleLabel.TextSize = 20
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.ZIndex = 4
 titleLabel.Parent = topBar
 
 -- Close button
 local closeBtn = Instance.new("TextButton")
-closeBtn.Size = UDim2.new(0, 40, 0, 40)
-closeBtn.Position = UDim2.new(1, -45, 0, 5)
-closeBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+closeBtn.Size = UDim2.new(0, 45, 0, 45)
+closeBtn.Position = UDim2.new(1, -55, 0, 7)
+closeBtn.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
 closeBtn.Text = "✕"
 closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextSize = 18
+closeBtn.TextSize = 20
 closeBtn.TextColor3 = Color3.new(1, 1, 1)
 closeBtn.ZIndex = 4
 closeBtn.Parent = topBar
 
 local closeCorner = Instance.new("UICorner")
-closeCorner.CornerRadius = UDim.new(0, 8)
+closeCorner.CornerRadius = UDim.new(0.3, 0)
 closeCorner.Parent = closeBtn
 
--- Action buttons container
+-- TP Tool section (NEW!)
+local toolSection = Instance.new("Frame")
+toolSection.Size = UDim2.new(1, -30, 0, 100)
+toolSection.Position = UDim2.new(0, 15, 0, 70)
+toolSection.BackgroundColor3 = Color3.fromRGB(30, 30, 42)
+toolSection.BorderSizePixel = 0
+toolSection.ZIndex = 3
+toolSection.Parent = mainPanel
+
+local toolCorner = Instance.new("UICorner")
+toolCorner.CornerRadius = UDim.new(0, 12)
+toolCorner.Parent = toolSection
+
+local toolStroke = Instance.new("UIStroke")
+toolStroke.Color = Color3.fromRGB(80, 120, 200)
+toolStroke.Thickness = 1.5
+toolStroke.Transparency = 0.5
+toolStroke.Parent = toolSection
+
+-- Tool icon
+local toolIconBig = Instance.new("ImageLabel")
+toolIconBig.Size = UDim2.new(0, 50, 0, 50)
+toolIconBig.Position = UDim2.new(0, 15, 0, 25)
+toolIconBig.BackgroundTransparency = 1
+toolIconBig.Image = "rbxassetid://3926305904"
+toolIconBig.ImageColor3 = Color3.fromRGB(100, 200, 255)
+toolIconBig.ZIndex = 4
+toolIconBig.Parent = toolSection
+
+-- Tool info
+local toolTitle = Instance.new("TextLabel")
+toolTitle.Size = UDim2.new(1, -180, 0, 22)
+toolTitle.Position = UDim2.new(0, 75, 0, 15)
+toolTitle.BackgroundTransparency = 1
+toolTitle.Text = "🎯 TP TOOL"
+toolTitle.Font = Enum.Font.GothamBold
+toolTitle.TextSize = 16
+toolTitle.TextColor3 = Color3.fromRGB(100, 200, 255)
+toolTitle.TextXAlignment = Enum.TextXAlignment.Left
+toolTitle.ZIndex = 4
+toolTitle.Parent = toolSection
+
+local toolDesc = Instance.new("TextLabel")
+toolDesc.Size = UDim2.new(1, -180, 0, 35)
+toolDesc.Position = UDim2.new(0, 75, 0, 37)
+toolDesc.BackgroundTransparency = 1
+toolDesc.Text = "Tap anywhere to teleport\nWorks like a real tool!"
+toolDesc.Font = Enum.Font.Gotham
+toolDesc.TextSize = 11
+toolDesc.TextColor3 = Color3.fromRGB(180, 180, 180)
+toolDesc.TextXAlignment = Enum.TextXAlignment.Left
+toolDesc.TextYAlignment = Enum.TextYAlignment.Top
+toolDesc.ZIndex = 4
+toolDesc.Parent = toolSection
+
+-- Equip tool button
+local equipBtn = Instance.new("TextButton")
+equipBtn.Size = UDim2.new(0, 90, 0, 35)
+equipBtn.Position = UDim2.new(1, -105, 0, 32)
+equipBtn.BackgroundColor3 = Color3.fromRGB(60, 150, 255)
+equipBtn.Text = "EQUIP"
+equipBtn.Font = Enum.Font.GothamBold
+equipBtn.TextSize = 13
+equipBtn.TextColor3 = Color3.new(1, 1, 1)
+equipBtn.ZIndex = 4
+equipBtn.Parent = toolSection
+
+local equipCorner = Instance.new("UICorner")
+equipCorner.CornerRadius = UDim.new(0, 8)
+equipCorner.Parent = equipBtn
+
+-- Action buttons
 local actionBar = Instance.new("Frame")
-actionBar.Size = UDim2.new(1, -20, 0, 45)
-actionBar.Position = UDim2.new(0, 10, 0, 60)
+actionBar.Size = UDim2.new(1, -30, 0, 50)
+actionBar.Position = UDim2.new(0, 15, 0, 185)
 actionBar.BackgroundTransparency = 1
 actionBar.ZIndex = 3
 actionBar.Parent = mainPanel
 
--- Save Current Location button
 local saveBtn = Instance.new("TextButton")
 saveBtn.Size = UDim2.new(0.48, 0, 1, 0)
-saveBtn.Position = UDim2.new(0, 0, 0, 0)
 saveBtn.BackgroundColor3 = Color3.fromRGB(80, 200, 120)
 saveBtn.Text = "💾 SAVE"
 saveBtn.Font = Enum.Font.GothamBold
-saveBtn.TextSize = 14
+saveBtn.TextSize = 15
 saveBtn.TextColor3 = Color3.new(1, 1, 1)
 saveBtn.ZIndex = 4
 saveBtn.Parent = actionBar
 
 local saveCorner = Instance.new("UICorner")
-saveCorner.CornerRadius = UDim.new(0, 8)
+saveCorner.CornerRadius = UDim.new(0, 10)
 saveCorner.Parent = saveBtn
 
--- Teleport to Mouse button
-local mouseTPBtn = Instance.new("TextButton")
-mouseTPBtn.Size = UDim2.new(0.48, 0, 1, 0)
-mouseTPBtn.Position = UDim2.new(0.52, 0, 0, 0)
-mouseTPBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 50)
-mouseTPBtn.Text = "🎯 MOUSE"
-mouseTPBtn.Font = Enum.Font.GothamBold
-mouseTPBtn.TextSize = 14
-mouseTPBtn.TextColor3 = Color3.new(1, 1, 1)
-mouseTPBtn.ZIndex = 4
-mouseTPBtn.Parent = actionBar
+local quickTPBtn = Instance.new("TextButton")
+quickTPBtn.Size = UDim2.new(0.48, 0, 1, 0)
+quickTPBtn.Position = UDim2.new(0.52, 0, 0, 0)
+quickTPBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 50)
+quickTPBtn.Text = "⚡ QUICK TP"
+quickTPBtn.Font = Enum.Font.GothamBold
+quickTPBtn.TextSize = 15
+quickTPBtn.TextColor3 = Color3.new(1, 1, 1)
+quickTPBtn.ZIndex = 4
+quickTPBtn.Parent = actionBar
 
-local mouseCorner = Instance.new("UICorner")
-mouseCorner.CornerRadius = UDim.new(0, 8)
-mouseCorner.Parent = mouseTPBtn
+local quickCorner = Instance.new("UICorner")
+quickCorner.CornerRadius = UDim.new(0, 10)
+quickCorner.Parent = quickTPBtn
 
--- Settings bar
+-- Settings
 local settingsBar = Instance.new("Frame")
-settingsBar.Size = UDim2.new(1, -20, 0, 35)
-settingsBar.Position = UDim2.new(0, 10, 0, 115)
-settingsBar.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+settingsBar.Size = UDim2.new(1, -30, 0, 40)
+settingsBar.Position = UDim2.new(0, 15, 0, 250)
+settingsBar.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 settingsBar.BorderSizePixel = 0
 settingsBar.ZIndex = 3
 settingsBar.Parent = mainPanel
 
 local settingsCorner = Instance.new("UICorner")
-settingsCorner.CornerRadius = UDim.new(0, 8)
+settingsCorner.CornerRadius = UDim.new(0, 10)
 settingsCorner.Parent = settingsBar
 
--- Anti TP Back toggle
 local antiTPBtn = Instance.new("TextButton")
-antiTPBtn.Size = UDim2.new(0.48, -5, 1, -6)
-antiTPBtn.Position = UDim2.new(0, 3, 0, 3)
+antiTPBtn.Size = UDim2.new(0.32, -3, 1, -8)
+antiTPBtn.Position = UDim2.new(0, 4, 0, 4)
 antiTPBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
-antiTPBtn.Text = "✓ Anti-Back"
-antiTPBtn.Font = Enum.Font.Gotham
-antiTPBtn.TextSize = 11
+antiTPBtn.Text = "✓ Anti"
+antiTPBtn.Font = Enum.Font.GothamBold
+antiTPBtn.TextSize = 12
 antiTPBtn.TextColor3 = Color3.new(1, 1, 1)
 antiTPBtn.ZIndex = 4
 antiTPBtn.Parent = settingsBar
 
 local antiCorner = Instance.new("UICorner")
-antiCorner.CornerRadius = UDim.new(0, 6)
+antiCorner.CornerRadius = UDim.new(0, 8)
 antiCorner.Parent = antiTPBtn
 
--- Method selector
 local methodBtn = Instance.new("TextButton")
-methodBtn.Size = UDim2.new(0.48, -5, 1, -6)
-methodBtn.Position = UDim2.new(0.52, 2, 0, 3)
+methodBtn.Size = UDim2.new(0.32, -3, 1, -8)
+methodBtn.Position = UDim2.new(0.34, 1, 0, 4)
 methodBtn.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
 methodBtn.Text = "⚡ CFrame"
-methodBtn.Font = Enum.Font.Gotham
+methodBtn.Font = Enum.Font.GothamBold
 methodBtn.TextSize = 11
 methodBtn.TextColor3 = Color3.new(1, 1, 1)
 methodBtn.ZIndex = 4
 methodBtn.Parent = settingsBar
 
 local methodCorner = Instance.new("UICorner")
-methodCorner.CornerRadius = UDim.new(0, 6)
+methodCorner.CornerRadius = UDim.new(0, 8)
 methodCorner.Parent = methodBtn
 
--- Saved locations label
-local locationsLabel = Instance.new("TextLabel")
-locationsLabel.Size = UDim2.new(1, -20, 0, 25)
-locationsLabel.Position = UDim2.new(0, 10, 0, 160)
-locationsLabel.BackgroundTransparency = 1
-locationsLabel.Text = "📍 SAVED LOCATIONS (0/10)"
-locationsLabel.Font = Enum.Font.GothamBold
-locationsLabel.TextSize = 12
-locationsLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-locationsLabel.TextXAlignment = Enum.TextXAlignment.Left
-locationsLabel.ZIndex = 3
-locationsLabel.Parent = mainPanel
+local clearBtn = Instance.new("TextButton")
+clearBtn.Size = UDim2.new(0.32, -3, 1, -8)
+clearBtn.Position = UDim2.new(0.68, 2, 0, 4)
+clearBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+clearBtn.Text = "🗑️ Clear"
+clearBtn.Font = Enum.Font.GothamBold
+clearBtn.TextSize = 12
+clearBtn.TextColor3 = Color3.new(1, 1, 1)
+clearBtn.ZIndex = 4
+clearBtn.Parent = settingsBar
 
--- Locations scroll frame
+local clearCorner = Instance.new("UICorner")
+clearCorner.CornerRadius = UDim.new(0, 8)
+clearCorner.Parent = clearBtn
+
+-- Locations header
+local locHeader = Instance.new("TextLabel")
+locHeader.Size = UDim2.new(1, -30, 0, 30)
+locHeader.Position = UDim2.new(0, 15, 0, 305)
+locHeader.BackgroundTransparency = 1
+locHeader.Text = "📍 SAVED LOCATIONS (0/20)"
+locHeader.Font = Enum.Font.GothamBold
+locHeader.TextSize = 14
+locHeader.TextColor3 = Color3.fromRGB(200, 200, 200)
+locHeader.TextXAlignment = Enum.TextXAlignment.Left
+locHeader.ZIndex = 3
+locHeader.Parent = mainPanel
+
+-- Locations scroll
 local locationsScroll = Instance.new("ScrollingFrame")
-locationsScroll.Size = UDim2.new(1, -20, 1, -200)
-locationsScroll.Position = UDim2.new(0, 10, 0, 190)
+locationsScroll.Size = UDim2.new(1, -30, 1, -350)
+locationsScroll.Position = UDim2.new(0, 15, 0, 340)
 locationsScroll.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
 locationsScroll.BorderSizePixel = 0
 locationsScroll.ScrollBarThickness = 6
+locationsScroll.ScrollBarImageColor3 = Color3.fromRGB(100, 150, 255)
 locationsScroll.ZIndex = 3
 locationsScroll.Parent = mainPanel
 
 local scrollCorner = Instance.new("UICorner")
-scrollCorner.CornerRadius = UDim.new(0, 8)
+scrollCorner.CornerRadius = UDim.new(0, 10)
 scrollCorner.Parent = locationsScroll
 
 local scrollLayout = Instance.new("UIListLayout")
 scrollLayout.SortOrder = Enum.SortOrder.LayoutOrder
-scrollLayout.Padding = UDim.new(0, 5)
+scrollLayout.Padding = UDim.new(0, 6)
 scrollLayout.Parent = locationsScroll
 
 local scrollPadding = Instance.new("UIPadding")
-scrollPadding.PaddingTop = UDim.new(0, 5)
-scrollPadding.PaddingLeft = UDim.new(0, 5)
-scrollPadding.PaddingRight = UDim.new(0, 5)
-scrollPadding.PaddingBottom = UDim.new(0, 5)
+scrollPadding.PaddingTop = UDim.new(0, 8)
+scrollPadding.PaddingLeft = UDim.new(0, 8)
+scrollPadding.PaddingRight = UDim.new(0, 8)
+scrollPadding.PaddingBottom = UDim.new(0, 8)
 scrollPadding.Parent = locationsScroll
 
--- Panel open/close state
+-- Panel state
 local isPanelOpen = false
 
--- Tool button click
-toolBtn.Activated:Connect(function()
+-- EQUIP TP TOOL
+equipBtn.Activated:Connect(function()
+	toolEquipped = not toolEquipped
+	
+	if toolEquipped then
+		equipBtn.Text = "UNEQUIP"
+		equipBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+		toolIconBig.ImageColor3 = Color3.fromRGB(80, 255, 100)
+		tpToolActive = true
+		
+		-- Close panel
+		isPanelOpen = false
+		blurFrame.Visible = false
+		TweenService:Create(mainPanel, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+			Size = UDim2.new(0, 0, 0, 0)
+		}):Play()
+		task.wait(0.3)
+		mainPanel.Visible = false
+	else
+		equipBtn.Text = "EQUIP"
+		equipBtn.BackgroundColor3 = Color3.fromRGB(60, 150, 255)
+		toolIconBig.ImageColor3 = Color3.fromRGB(100, 200, 255)
+		tpToolActive = false
+	end
+end)
+
+-- TP TOOL TAP DETECTION
+local tapConnection
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if not gameProcessed and tpToolActive then
+		if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+			-- Get tap position
+			local screenPos = input.Position
+			local camera = workspace.CurrentCamera
+			
+			-- Raycast from screen to world
+			local unitRay = camera:ViewportPointToRay(screenPos.X, screenPos.Y)
+			local raycastParams = RaycastParams.new()
+			raycastParams.FilterDescendantsInstances = {character}
+			raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+			
+			local rayResult = workspace:Raycast(unitRay.Origin, unitRay.Direction * 1000, raycastParams)
+			
+			if rayResult then
+				teleportTo(rayResult.Position)
+				
+				-- Visual feedback on tap
+				showTapEffect(screenPos)
+			end
+		end
+	end
+end)
+
+-- TAP EFFECT
+function showTapEffect(screenPos)
+	local effect = Instance.new("Frame")
+	effect.Size = UDim2.new(0, 20, 0, 20)
+	effect.Position = UDim2.new(0, screenPos.X - 10, 0, screenPos.Y - 10)
+	effect.BackgroundColor3 = Color3.fromRGB(100, 200, 255)
+	effect.BackgroundTransparency = 0
+	effect.BorderSizePixel = 0
+	effect.ZIndex = 100
+	effect.Parent = gui
+	
+	local effectCorner = Instance.new("UICorner")
+	effectCorner.CornerRadius = UDim.new(0.5, 0)
+	effectCorner.Parent = effect
+	
+	TweenService:Create(effect, TweenInfo.new(0.5), {
+		Size = UDim2.new(0, 80, 0, 80),
+		BackgroundTransparency = 1,
+		Position = UDim2.new(0, screenPos.X - 40, 0, screenPos.Y - 40)
+	}):Play()
+	
+	task.wait(0.5)
+	effect:Destroy()
+end
+
+-- Mini button click
+miniBtn.Activated:Connect(function()
 	isPanelOpen = not isPanelOpen
 	
 	if isPanelOpen then
 		mainPanel.Visible = true
-		-- Slide in from right
-		mainPanel.Position = UDim2.new(1, 0, 0.5, -250)
-		TweenService:Create(mainPanel, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-			Position = UDim2.new(1, -350, 0.5, -250)
+		blurFrame.Visible = true
+		mainPanel.Size = UDim2.new(0, 0, 0, 0)
+		
+		TweenService:Create(mainPanel, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+			Size = UDim2.new(0, 380, 0, 550)
 		}):Play()
 		
-		-- Pulse effect on tool button
-		TweenService:Create(toolBtn, TweenInfo.new(0.15), {
-			Size = UDim2.new(0, 75, 0, 75),
-			BackgroundColor3 = Color3.fromRGB(50, 150, 255)
+		TweenService:Create(miniBtn, TweenInfo.new(0.2), {
+			Size = UDim2.new(0, 85, 0, 85)
 		}):Play()
 	else
-		-- Slide out to right
-		TweenService:Create(mainPanel, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
-			Position = UDim2.new(1, 0, 0.5, -250)
+		blurFrame.Visible = false
+		TweenService:Create(mainPanel, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+			Size = UDim2.new(0, 0, 0, 0)
 		}):Play()
 		
-		task.wait(0.25)
+		TweenService:Create(miniBtn, TweenInfo.new(0.2), {
+			Size = UDim2.new(0, 80, 0, 80)
+		}):Play()
+		
+		task.wait(0.3)
 		mainPanel.Visible = false
-		
-		-- Reset tool button
-		TweenService:Create(toolBtn, TweenInfo.new(0.15), {
-			Size = UDim2.new(0, 70, 0, 70),
-			BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-		}):Play()
 	end
 end)
 
--- Close button
 closeBtn.Activated:Connect(function()
 	isPanelOpen = false
+	blurFrame.Visible = false
 	
-	TweenService:Create(mainPanel, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
-		Position = UDim2.new(1, 0, 0.5, -250)
+	TweenService:Create(mainPanel, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+		Size = UDim2.new(0, 0, 0, 0)
 	}):Play()
 	
-	task.wait(0.25)
+	TweenService:Create(miniBtn, TweenInfo.new(0.2), {
+		Size = UDim2.new(0, 80, 0, 80)
+	}):Play()
+	
+	task.wait(0.3)
 	mainPanel.Visible = false
-	
-	TweenService:Create(toolBtn, TweenInfo.new(0.15), {
-		Size = UDim2.new(0, 70, 0, 70),
-		BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-	}):Play()
 end)
 
--- Anti TP Back toggle
+-- Settings
 antiTPBtn.Activated:Connect(function()
 	antiTPBack = not antiTPBack
 	
 	if antiTPBack then
-		antiTPBtn.Text = "✓ Anti-Back"
+		antiTPBtn.Text = "✓ Anti"
 		antiTPBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
 	else
-		antiTPBtn.Text = "✕ Anti-Back"
+		antiTPBtn.Text = "✕ Anti"
 		antiTPBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
 	end
 end)
 
--- Method selector
 methodBtn.Activated:Connect(function()
 	if tpMethod == "cframe" then
 		tpMethod = "tween"
 		methodBtn.Text = "✨ Tween"
-		methodBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 255)
 	elseif tpMethod == "tween" then
 		tpMethod = "velocity"
 		methodBtn.Text = "🚀 Velocity"
-		methodBtn.BackgroundColor3 = Color3.fromRGB(255, 200, 50)
 	else
 		tpMethod = "cframe"
 		methodBtn.Text = "⚡ CFrame"
-		methodBtn.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
 	end
 end)
 
--- Update locations label
-local function updateLocationsLabel()
-	locationsLabel.Text = "📍 SAVED LOCATIONS (" .. #savedLocations .. "/" .. MAX_LOCATIONS .. ")"
+clearBtn.Activated:Connect(function()
+	savedLocations = {}
+	refreshLocationsList()
+	updateLocationsLabel()
+	
+	clearBtn.Text = "✓ CLEARED"
+	task.wait(1)
+	clearBtn.Text = "🗑️ Clear"
+end)
+
+-- Update label
+function updateLocationsLabel()
+	locHeader.Text = "📍 SAVED LOCATIONS (" .. #savedLocations .. "/20)"
 	badgeLabel.Text = tostring(#savedLocations)
 end
 
 -- Create location entry
-local function createLocationEntry(location, index)
+function createLocationEntry(location, index)
 	local entry = Instance.new("Frame")
-	entry.Size = UDim2.new(1, -10, 0, 60)
-	entry.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+	entry.Size = UDim2.new(1, -10, 0, 65)
+	entry.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
 	entry.BorderSizePixel = 0
 	entry.LayoutOrder = index
 	entry.ZIndex = 4
 	entry.Parent = locationsScroll
 	
 	local entryCorner = Instance.new("UICorner")
-	entryCorner.CornerRadius = UDim.new(0, 8)
+	entryCorner.CornerRadius = UDim.new(0, 10)
 	entryCorner.Parent = entry
 	
-	-- Location name
+	local entryStroke = Instance.new("UIStroke")
+	entryStroke.Color = Color3.fromRGB(60, 100, 180)
+	entryStroke.Thickness = 1
+	entryStroke.Transparency = 0.7
+	entryStroke.Parent = entry
+	
 	local nameLabel = Instance.new("TextLabel")
-	nameLabel.Size = UDim2.new(1, -90, 0, 20)
-	nameLabel.Position = UDim2.new(0, 10, 0, 5)
+	nameLabel.Size = UDim2.new(1, -90, 0, 22)
+	nameLabel.Position = UDim2.new(0, 12, 0, 8)
 	nameLabel.BackgroundTransparency = 1
 	nameLabel.Text = location.name
 	nameLabel.Font = Enum.Font.GothamBold
-	nameLabel.TextSize = 13
+	nameLabel.TextSize = 14
 	nameLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
 	nameLabel.TextXAlignment = Enum.TextXAlignment.Left
 	nameLabel.ZIndex = 5
 	nameLabel.Parent = entry
 	
-	-- Position info
 	local posLabel = Instance.new("TextLabel")
-	posLabel.Size = UDim2.new(1, -90, 0, 15)
-	posLabel.Position = UDim2.new(0, 10, 0, 25)
+	posLabel.Size = UDim2.new(1, -90, 0, 16)
+	posLabel.Position = UDim2.new(0, 12, 0, 30)
 	posLabel.BackgroundTransparency = 1
-	posLabel.Text = string.format("X: %.0f Y: %.0f Z: %.0f", location.position.X, location.position.Y, location.position.Z)
+	posLabel.Text = string.format("X:%.0f Y:%.0f Z:%.0f", location.position.X, location.position.Y, location.position.Z)
 	posLabel.Font = Enum.Font.Gotham
-	posLabel.TextSize = 10
-	posLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+	posLabel.TextSize = 11
+	posLabel.TextColor3 = Color3.fromRGB(160, 160, 160)
 	posLabel.TextXAlignment = Enum.TextXAlignment.Left
 	posLabel.ZIndex = 5
 	posLabel.Parent = entry
 	
-	-- Time saved
 	local timeLabel = Instance.new("TextLabel")
-	timeLabel.Size = UDim2.new(1, -90, 0, 15)
-	timeLabel.Position = UDim2.new(0, 10, 0, 40)
+	timeLabel.Size = UDim2.new(1, -90, 0, 14)
+	timeLabel.Position = UDim2.new(0, 12, 0, 46)
 	timeLabel.BackgroundTransparency = 1
 	timeLabel.Text = "⏰ " .. location.time
 	timeLabel.Font = Enum.Font.Gotham
-	timeLabel.TextSize = 9
+	timeLabel.TextSize = 10
 	timeLabel.TextColor3 = Color3.fromRGB(120, 120, 120)
 	timeLabel.TextXAlignment = Enum.TextXAlignment.Left
 	timeLabel.ZIndex = 5
 	timeLabel.Parent = entry
 	
-	-- Teleport button
 	local tpBtn = Instance.new("TextButton")
-	tpBtn.Size = UDim2.new(0, 35, 0, 25)
-	tpBtn.Position = UDim2.new(1, -75, 0, 10)
+	tpBtn.Size = UDim2.new(0, 35, 0, 28)
+	tpBtn.Position = UDim2.new(1, -75, 0, 12)
 	tpBtn.BackgroundColor3 = Color3.fromRGB(100, 200, 255)
 	tpBtn.Text = "→"
 	tpBtn.Font = Enum.Font.GothamBold
-	tpBtn.TextSize = 16
+	tpBtn.TextSize = 18
 	tpBtn.TextColor3 = Color3.new(1, 1, 1)
 	tpBtn.ZIndex = 5
 	tpBtn.Parent = entry
 	
 	local tpCorner = Instance.new("UICorner")
-	tpCorner.CornerRadius = UDim.new(0, 6)
+	tpCorner.CornerRadius = UDim.new(0, 8)
 	tpCorner.Parent = tpBtn
 	
-	-- Delete button
 	local delBtn = Instance.new("TextButton")
-	delBtn.Size = UDim2.new(0, 35, 0, 25)
-	delBtn.Position = UDim2.new(1, -35, 0, 10)
+	delBtn.Size = UDim2.new(0, 35, 0, 28)
+	delBtn.Position = UDim2.new(1, -35, 0, 12)
 	delBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
 	delBtn.Text = "✕"
 	delBtn.Font = Enum.Font.GothamBold
-	delBtn.TextSize = 14
+	delBtn.TextSize = 16
 	delBtn.TextColor3 = Color3.new(1, 1, 1)
 	delBtn.ZIndex = 5
 	delBtn.Parent = entry
 	
 	local delCorner = Instance.new("UICorner")
-	delCorner.CornerRadius = UDim.new(0, 6)
+	delCorner.CornerRadius = UDim.new(0, 8)
 	delCorner.Parent = delBtn
 	
 	-- Teleport action
 	tpBtn.Activated:Connect(function()
 		teleportTo(location.position)
 		
-		-- Visual feedback
-		TweenService:Create(tpBtn, TweenInfo.new(0.1), {
+		TweenService:Create(tpBtn, TweenInfo.new(0.15), {
 			BackgroundColor3 = Color3.fromRGB(80, 255, 100)
 		}):Play()
-		task.wait(0.2)
-		TweenService:Create(tpBtn, TweenInfo.new(0.1), {
+		task.wait(0.3)
+		TweenService:Create(tpBtn, TweenInfo.new(0.15), {
 			BackgroundColor3 = Color3.fromRGB(100, 200, 255)
 		}):Play()
 	end)
@@ -481,7 +676,7 @@ local function createLocationEntry(location, index)
 	end)
 end
 
--- Refresh locations list
+-- Refresh list
 function refreshLocationsList()
 	for _, child in ipairs(locationsScroll:GetChildren()) do
 		if child:IsA("Frame") then
@@ -493,10 +688,10 @@ function refreshLocationsList()
 		createLocationEntry(location, i)
 	end
 	
-	locationsScroll.CanvasSize = UDim2.new(0, 0, 0, #savedLocations * 65)
+	locationsScroll.CanvasSize = UDim2.new(0, 0, 0, #savedLocations * 71)
 end
 
--- Save current location
+-- Save location
 saveBtn.Activated:Connect(function()
 	if not hrp then
 		saveBtn.Text = "❌ NO CHAR"
@@ -516,7 +711,7 @@ saveBtn.Activated:Connect(function()
 	local timestamp = os.date("%H:%M:%S")
 	
 	table.insert(savedLocations, {
-		name = "Location " .. (#savedLocations + 1),
+		name = "Location #" .. (#savedLocations + 1),
 		position = currentPos,
 		time = timestamp
 	})
@@ -524,7 +719,6 @@ saveBtn.Activated:Connect(function()
 	refreshLocationsList()
 	updateLocationsLabel()
 	
-	-- Visual feedback
 	saveBtn.Text = "✓ SAVED"
 	saveBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
 	task.wait(0.5)
@@ -532,51 +726,73 @@ saveBtn.Activated:Connect(function()
 	saveBtn.BackgroundColor3 = Color3.fromRGB(80, 200, 120)
 end)
 
--- Teleport to mouse
-mouseTPBtn.Activated:Connect(function()
-	local mouse = player:GetMouse()
-	local targetPos = mouse.Hit.Position
+-- Quick TP (tap screen once for instant TP)
+local quickTPMode = false
+quickTPBtn.Activated:Connect(function()
+	quickTPMode = true
+	quickTPBtn.Text = "👆 TAP NOW"
+	quickTPBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
 	
-	if targetPos then
-		teleportTo(targetPos)
-		
-		-- Visual feedback
-		mouseTPBtn.Text = "✓ TP"
-		mouseTPBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
-		task.wait(0.5)
-		mouseTPBtn.Text = "🎯 MOUSE"
-		mouseTPBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 50)
+	-- Close panel
+	isPanelOpen = false
+	blurFrame.Visible = false
+	TweenService:Create(mainPanel, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+		Size = UDim2.new(0, 0, 0, 0)
+	}):Play()
+	task.wait(0.3)
+	mainPanel.Visible = false
+	
+	-- Wait for tap
+	local connection
+	connection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+		if not gameProcessed and quickTPMode then
+			if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+				local screenPos = input.Position
+				local camera = workspace.CurrentCamera
+				
+				local unitRay = camera:ViewportPointToRay(screenPos.X, screenPos.Y)
+				local raycastParams = RaycastParams.new()
+				raycastParams.FilterDescendantsInstances = {character}
+				raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+				
+				local rayResult = workspace:Raycast(unitRay.Origin, unitRay.Direction * 1000, raycastParams)
+				
+				if rayResult then
+					teleportTo(rayResult.Position)
+					showTapEffect(screenPos)
+				end
+				
+				quickTPMode = false
+				connection:Disconnect()
+			end
+		end
+	end)
+	
+	-- Timeout after 10 seconds
+	task.wait(10)
+	if quickTPMode then
+		quickTPMode = false
+		quickTPBtn.Text = "⚡ QUICK TP"
+		quickTPBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 50)
+		connection:Disconnect()
 	end
 end)
 
--- TELEPORT FUNCTION (ANTI TP-BACK PROTECTION)
+-- TELEPORT FUNCTION
 function teleportTo(targetPos)
 	if not hrp or not humanoid then return end
 	
 	local targetCFrame = CFrame.new(targetPos + Vector3.new(0, 3, 0))
 	
 	if tpMethod == "cframe" then
-		-- INSTANT CFRAME (with anti tp-back)
+		-- INSTANT CFRAME
 		if antiTPBack then
-			-- Disable character physics temporarily
-			for _, part in ipairs(character:GetDescendants()) do
-				if part:IsA("BasePart") then
-					part.Anchored = true
-				end
-			end
-		end
-		
-		hrp.CFrame = targetCFrame
-		
-		if antiTPBack then
+			hrp.CFrame = targetCFrame
+			hrp.Anchored = true
 			task.wait(0.1)
-			-- Re-enable physics
-			for _, part in ipairs(character:GetDescendants()) do
-				if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
-					part.Anchored = false
-				end
-			end
 			hrp.Anchored = false
+		else
+			hrp.CFrame = targetCFrame
 		end
 		
 	elseif tpMethod == "tween" then
@@ -592,60 +808,239 @@ function teleportTo(targetPos)
 		tween.Completed:Wait()
 		
 		if antiTPBack then
+			task.wait(0.05)
 			humanoid.PlatformStand = false
 		end
 		
 	elseif tpMethod == "velocity" then
-		-- VELOCITY-BASED (looks more natural)
+		-- VELOCITY-BASED
 		local direction = (targetPos - hrp.Position).Unit
 		local distance = (targetPos - hrp.Position).Magnitude
 		
 		local bodyVelocity = Instance.new("BodyVelocity")
 		bodyVelocity.MaxForce = Vector3.new(100000, 100000, 100000)
-		bodyVelocity.Velocity = direction * math.min(distance * 2, 200)
+		bodyVelocity.Velocity = direction * math.min(distance * 3, 250)
 		bodyVelocity.Parent = hrp
 		
 		if antiTPBack then
 			humanoid.PlatformStand = true
 		end
 		
-		task.wait(0.5)
+		task.wait(0.4)
 		bodyVelocity:Destroy()
 		
 		if antiTPBack then
+			task.wait(0.05)
 			humanoid.PlatformStand = false
 		end
 	end
 end
 
--- Anti TP-back protection loop
+-- ANTI TP-BACK PROTECTION (Advanced)
 if antiTPBack then
+	local lastValidPos = nil
+	local tpInProgress = false
+	
 	spawn(function()
-		local lastPos = nil
 		while true do
-			wait(0.1)
-			if hrp and antiTPBack then
-				if lastPos and (hrp.Position - lastPos).Magnitude > 100 then
-					-- Large position change detected, lock position briefly
-					hrp.Anchored = true
-					task.wait(0.05)
-					hrp.Anchored = false
+			wait(0.05)
+			if hrp and antiTPBack and not tpInProgress then
+				local currentPos = hrp.Position
+				
+				if lastValidPos then
+					local distance = (currentPos - lastValidPos).Magnitude
+					
+					-- If game tries to TP us back (large sudden movement)
+					if distance > 100 then
+						-- Lock position briefly
+						hrp.Anchored = true
+						task.wait(0.08)
+						hrp.Anchored = false
+					end
 				end
-				lastPos = hrp.Position
+				
+				lastValidPos = currentPos
 			end
 		end
 	end)
 end
 
+-- Pulse animation for mini button
+spawn(function()
+	while true do
+		wait(2)
+		if not isPanelOpen then
+			TweenService:Create(miniStroke, TweenInfo.new(0.5), {
+				Transparency = 0.2
+			}):Play()
+			task.wait(0.5)
+			TweenService:Create(miniStroke, TweenInfo.new(0.5), {
+				Transparency = 0.5
+			}):Play()
+		end
+	end
+end)
+
+-- Tool active indicator (animated border when equipped)
+spawn(function()
+	while true do
+		wait(0.05)
+		if tpToolActive then
+			-- Rotate gradient when tool is active
+			miniGradient.Rotation = miniGradient.Rotation + 2
+			miniStroke.Color = Color3.fromRGB(
+				100 + math.sin(tick() * 3) * 50,
+				200 + math.cos(tick() * 3) * 50,
+				255
+			)
+		else
+			miniGradient.Rotation = 45
+			miniStroke.Color = Color3.fromRGB(100, 150, 255)
+		end
+	end
+end)
+
+-- Screen indicator when tool is equipped
+local toolIndicator = Instance.new("TextLabel")
+toolIndicator.Size = UDim2.new(0, 200, 0, 40)
+toolIndicator.Position = UDim2.new(0.5, -100, 0, 20)
+toolIndicator.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+toolIndicator.BackgroundTransparency = 0.3
+toolIndicator.Text = "🎯 TAP TO TELEPORT"
+toolIndicator.Font = Enum.Font.GothamBold
+toolIndicator.TextSize = 14
+toolIndicator.TextColor3 = Color3.fromRGB(100, 255, 150)
+toolIndicator.Visible = false
+toolIndicator.ZIndex = 50
+toolIndicator.Parent = gui
+
+local indicatorCorner = Instance.new("UICorner")
+indicatorCorner.CornerRadius = UDim.new(0, 10)
+indicatorCorner.Parent = toolIndicator
+
+local indicatorStroke = Instance.new("UIStroke")
+indicatorStroke.Color = Color3.fromRGB(100, 255, 150)
+indicatorStroke.Thickness = 2
+indicatorStroke.Parent = toolIndicator
+
+-- Show/hide tool indicator
+spawn(function()
+	while true do
+		wait(0.1)
+		if tpToolActive and not toolIndicator.Visible then
+			toolIndicator.Visible = true
+			toolIndicator.Position = UDim2.new(0.5, -100, 0, -50)
+			TweenService:Create(toolIndicator, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+				Position = UDim2.new(0.5, -100, 0, 20)
+			}):Play()
+		elseif not tpToolActive and toolIndicator.Visible then
+			TweenService:Create(toolIndicator, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+				Position = UDim2.new(0.5, -100, 0, -50)
+			}):Play()
+			task.wait(0.3)
+			toolIndicator.Visible = false
+		end
+	end
+end)
+
+-- Indicator pulse animation
+spawn(function()
+	while true do
+		wait(0.05)
+		if tpToolActive then
+			indicatorStroke.Color = Color3.fromRGB(
+				100,
+				200 + math.sin(tick() * 4) * 55,
+				150
+			)
+		end
+	end
+end)
+
+-- Waypoint system (hold to save, tap to TP)
+local holdingForWaypoint = false
+local holdStartTime = 0
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if not gameProcessed and not tpToolActive then
+		if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+			holdingForWaypoint = true
+			holdStartTime = tick()
+		end
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input, gameProcessed)
+	if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+		local holdDuration = tick() - holdStartTime
+		holdingForWaypoint = false
+		
+		-- If held for 2+ seconds, save location
+		if holdDuration >= 2 and not tpToolActive and not gameProcessed then
+			if hrp and #savedLocations < MAX_LOCATIONS then
+				local currentPos = hrp.Position
+				local timestamp = os.date("%H:%M:%S")
+				
+				table.insert(savedLocations, {
+					name = "Quick Save #" .. (#savedLocations + 1),
+					position = currentPos,
+					time = timestamp
+				})
+				
+				refreshLocationsList()
+				updateLocationsLabel()
+				
+				-- Show feedback
+				local notification = Instance.new("TextLabel")
+				notification.Size = UDim2.new(0, 250, 0, 50)
+				notification.Position = UDim2.new(0.5, -125, 0.5, -25)
+				notification.BackgroundColor3 = Color3.fromRGB(80, 200, 120)
+				notification.Text = "✓ LOCATION SAVED"
+				notification.Font = Enum.Font.GothamBold
+				notification.TextSize = 16
+				notification.TextColor3 = Color3.new(1, 1, 1)
+				notification.ZIndex = 100
+				notification.Parent = gui
+				
+				local notifCorner = Instance.new("UICorner")
+				notifCorner.CornerRadius = UDim.new(0, 12)
+				notifCorner.Parent = notification
+				
+				notification.BackgroundTransparency = 1
+				TweenService:Create(notification, TweenInfo.new(0.3), {
+					BackgroundTransparency = 0
+				}):Play()
+				
+				task.wait(1.5)
+				
+				TweenService:Create(notification, TweenInfo.new(0.3), {
+					BackgroundTransparency = 1
+				}):Play()
+				task.wait(0.3)
+				notification:Destroy()
+			end
+		end
+	end
+end)
+
+-- Initialize
+updateLocationsLabel()
+
 print("==========================================")
-print("Universal Teleport System [MOBILE + PC]")
+print("Universal Teleport System [CLEAN + TOOL]")
 print("==========================================")
-print("✅ Tool-style GUI (bottom right)")
-print("✅ Slide-in inventory panel")
-print("✅ Save up to 10 locations")
-print("✅ Teleport to mouse position")
+print("✅ Draggable mini button")
+print("✅ Modern gradient UI")
+print("✅ TP Tool - Equip & tap to teleport")
+print("✅ Quick TP - One tap anywhere")
+print("✅ Save up to 20 locations")
+print("✅ Hold 2s to quick save location")
 print("✅ Anti TP-back protection")
-print("✅ 3 TP methods: CFrame/Tween/Velocity")
+print("✅ 3 TP methods available")
 print("==========================================")
-print("💡 Works even if backpack is hidden!")
+print("💡 USAGE:")
+print("   • Tap mini button to open panel")
+print("   • EQUIP TP TOOL to tap-teleport")
+print("   • QUICK TP for one-time teleport")
+print("   • Hold screen 2s to quick save")
 print("==========================================")
