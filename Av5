@@ -1,22 +1,42 @@
 -- LocalScript (StarterPlayerScripts)
--- Multi-Universal Hitbox Expander [DAMAGE BYPASS]
+-- Multi-Universal Hitbox Adjuster [BYPASS EDITION]
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 
+-- Only run on mobile
+if not UserInputService.TouchEnabled then
+	return
+end
+
 local player = Players.LocalPlayer
 local character, humanoid, hrp
 
 local hitboxEnabled = false
 local currentSize = 10
-local currentMethod = "hrp"
+local currentTransparency = 0.7
+local visualizeEnabled = true
+local currentMethod = "hybrid"
+
+-- Hitbox parts storage
+local hitboxParts = {}
+local originalSizes = {}
 
 local function setupCharacter(char)
 	character = char
 	humanoid = char:WaitForChild("Humanoid")
 	hrp = char:FindFirstChild("HumanoidRootPart") or char:WaitForChild("HumanoidRootPart")
+	
+	-- Clear old hitbox parts
+	for _, part in pairs(hitboxParts) do
+		if part and part.Parent then
+			part:Destroy()
+		end
+	end
+	hitboxParts = {}
+	originalSizes = {}
 end
 
 if player.Character then setupCharacter(player.Character) end
@@ -24,19 +44,20 @@ player.CharacterAdded:Connect(setupCharacter)
 
 -- GUI
 local gui = Instance.new("ScreenGui")
-gui.Name = "HitboxUI"
+gui.Name = "HitboxAdjusterUI"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
+-- Minimized Button
 local miniBtn = Instance.new("TextButton")
-miniBtn.Size = UDim2.new(0, 60, 0, 60)
-miniBtn.Position = UDim2.new(0.85, -60, 0.5, -30)
-miniBtn.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+miniBtn.Size = UDim2.new(0, 50, 0, 50)
+miniBtn.Position = UDim2.new(0.85, -50, 0.4, 0)
+miniBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 50)
 miniBtn.BorderSizePixel = 0
 miniBtn.Font = Enum.Font.GothamBold
-miniBtn.TextSize = 24
+miniBtn.TextSize = 20
 miniBtn.TextColor3 = Color3.new(1, 1, 1)
-miniBtn.Text = "🎯"
+miniBtn.Text = "+"
 miniBtn.Visible = false
 miniBtn.ZIndex = 10
 miniBtn.Active = true
@@ -46,9 +67,20 @@ local miniBtnCorner = Instance.new("UICorner")
 miniBtnCorner.CornerRadius = UDim.new(0.5, 0)
 miniBtnCorner.Parent = miniBtn
 
+local miniLabel = Instance.new("TextLabel")
+miniLabel.Size = UDim2.new(1, 0, 0, 15)
+miniLabel.Position = UDim2.new(0, 0, 1, 2)
+miniLabel.BackgroundTransparency = 1
+miniLabel.Text = "HITBOX"
+miniLabel.Font = Enum.Font.GothamBold
+miniLabel.TextSize = 9
+miniLabel.TextColor3 = Color3.fromRGB(255, 150, 50)
+miniLabel.Parent = miniBtn
+
+-- Main Container
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 200, 0, 380)
-mainFrame.Position = UDim2.new(0.85, -200, 0.28, 0)
+mainFrame.Size = UDim2.new(0, 170, 0, 320)
+mainFrame.Position = UDim2.new(0.85, -170, 0.4, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = false
@@ -58,41 +90,29 @@ local mainCorner = Instance.new("UICorner")
 mainCorner.CornerRadius = UDim.new(0, 12)
 mainCorner.Parent = mainFrame
 
+-- Drag Handle
 local dragHandle = Instance.new("Frame")
 dragHandle.Size = UDim2.new(1, 0, 0, 35)
 dragHandle.BackgroundTransparency = 1
 dragHandle.Active = true
 dragHandle.Parent = mainFrame
 
+-- Title
 local titleLabel = Instance.new("TextLabel")
 titleLabel.Size = UDim2.new(1, -75, 1, 0)
 titleLabel.Position = UDim2.new(0, 10, 0, 0)
 titleLabel.BackgroundTransparency = 1
 titleLabel.Text = "HITBOX"
 titleLabel.Font = Enum.Font.GothamBold
-titleLabel.TextSize = 18
-titleLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+titleLabel.TextSize = 16
+titleLabel.TextColor3 = Color3.fromRGB(255, 150, 50)
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.Parent = dragHandle
 
-local methodBtn = Instance.new("TextButton")
-methodBtn.Size = UDim2.new(0, 24, 0, 24)
-methodBtn.Position = UDim2.new(1, -50, 0, 5)
-methodBtn.Text = "+"
-methodBtn.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
-methodBtn.TextColor3 = Color3.new(1, 1, 1)
-methodBtn.Font = Enum.Font.GothamBold
-methodBtn.TextSize = 18
-methodBtn.ZIndex = 10
-methodBtn.Parent = dragHandle
-
-local methodCorner = Instance.new("UICorner")
-methodCorner.CornerRadius = UDim.new(0.5, 0)
-methodCorner.Parent = methodBtn
-
+-- Minimize Button
 local minimizeBtn = Instance.new("TextButton")
 minimizeBtn.Size = UDim2.new(0, 20, 0, 20)
-minimizeBtn.Position = UDim2.new(1, -25, 0, 7)
+minimizeBtn.Position = UDim2.new(1, -50, 0, 7)
 minimizeBtn.Text = "-"
 minimizeBtn.BackgroundColor3 = Color3.fromRGB(255, 200, 100)
 minimizeBtn.TextColor3 = Color3.new(1, 1, 1)
@@ -105,37 +125,43 @@ local minimizeCorner = Instance.new("UICorner")
 minimizeCorner.CornerRadius = UDim.new(0.5, 0)
 minimizeCorner.Parent = minimizeBtn
 
-local statusDot = Instance.new("Frame")
-statusDot.Size = UDim2.new(0, 10, 0, 10)
-statusDot.Position = UDim2.new(1, -15, 0, 12)
-statusDot.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-statusDot.BorderSizePixel = 0
-statusDot.Parent = dragHandle
+-- Method Selector Button
+local methodBtn = Instance.new("TextButton")
+methodBtn.Size = UDim2.new(0, 24, 0, 24)
+methodBtn.Position = UDim2.new(1, -28, 0, 5)
+methodBtn.Text = "+"
+methodBtn.BackgroundColor3 = Color3.fromRGB(46, 147, 216)
+methodBtn.TextColor3 = Color3.new(1, 1, 1)
+methodBtn.Font = Enum.Font.GothamBold
+methodBtn.TextSize = 18
+methodBtn.ZIndex = 10
+methodBtn.Parent = dragHandle
 
-local dotCorner = Instance.new("UICorner")
-dotCorner.CornerRadius = UDim.new(0.5, 0)
-dotCorner.Parent = statusDot
+local methodCorner = Instance.new("UICorner")
+methodCorner.CornerRadius = UDim.new(0.5, 0)
+methodCorner.Parent = methodBtn
 
 -- Method Menu
 local methodMenu = Instance.new("Frame")
-methodMenu.Size = UDim2.new(0, 180, 0, 0)
+methodMenu.Size = UDim2.new(0, 160, 0, 0)
 methodMenu.Position = UDim2.new(1, 5, 0, 0)
 methodMenu.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 methodMenu.BorderSizePixel = 0
 methodMenu.ClipsDescendants = true
 methodMenu.Visible = false
-methodMenu.ZIndex = 11
+methodMenu.ZIndex = 5
 methodMenu.Parent = mainFrame
 
 local menuCorner = Instance.new("UICorner")
 menuCorner.CornerRadius = UDim.new(0, 8)
 menuCorner.Parent = methodMenu
 
+-- Methods
 local methods = {
-	{name = "HRP EXPAND", desc = "Root Part", id = "hrp", color = Color3.fromRGB(255, 100, 100)},
-	{name = "ALL PARTS", desc = "Full Body", id = "allparts", color = Color3.fromRGB(100, 150, 255)},
-	{name = "LIMB ONLY", desc = "Arms/Legs", id = "limbs", color = Color3.fromRGB(150, 255, 100)},
-	{name = "BATTLEGROUNDS", desc = "Combat", id = "battlegrounds", color = Color3.fromRGB(255, 150, 100)}
+	{name = "HYBRID", desc = "Size+Part", id = "hybrid", color = Color3.fromRGB(150, 100, 255)},
+	{name = "EXPAND", desc = "Size Only", id = "expand", color = Color3.fromRGB(80, 200, 120)},
+	{name = "PHANTOM", desc = "Invisible", id = "phantom", color = Color3.fromRGB(255, 140, 60)},
+	{name = "CLONE", desc = "Duplicate", id = "clone", color = Color3.fromRGB(255, 100, 100)}
 }
 
 local methodButtons = {}
@@ -148,10 +174,10 @@ for i, method in ipairs(methods) do
 	btn.BackgroundTransparency = 0.2
 	btn.BorderSizePixel = 0
 	btn.Font = Enum.Font.GothamBold
-	btn.TextSize = 10
+	btn.TextSize = 12
 	btn.TextColor3 = Color3.new(1, 1, 1)
 	btn.Text = method.name .. " · " .. method.desc
-	btn.ZIndex = 12
+	btn.ZIndex = 6
 	btn.Parent = methodMenu
 	
 	local btnCorner = Instance.new("UICorner")
@@ -164,7 +190,7 @@ for i, method in ipairs(methods) do
 	indicator.BackgroundColor3 = Color3.new(1, 1, 1)
 	indicator.BorderSizePixel = 0
 	indicator.Visible = (i == 1)
-	indicator.ZIndex = 13
+	indicator.ZIndex = 7
 	indicator.Parent = btn
 	
 	local indCorner = Instance.new("UICorner")
@@ -183,14 +209,17 @@ for i, method in ipairs(methods) do
 			}):Play()
 		end
 		
+		TweenService:Create(btn, TweenInfo.new(0.1), {Size = UDim2.new(1, -8, 0, 32)}):Play()
+		task.wait(0.1)
+		TweenService:Create(btn, TweenInfo.new(0.1), {Size = UDim2.new(1, -10, 0, 32)}):Play()
+		
 		if hitboxEnabled then
-			disableHitbox()
-			task.wait(0.1)
-			enableHitbox()
+			applyHitbox()
 		end
 	end)
 end
 
+-- Method menu toggle
 local menuOpen = false
 methodBtn.Activated:Connect(function()
 	menuOpen = not menuOpen
@@ -198,7 +227,7 @@ methodBtn.Activated:Connect(function()
 	if menuOpen then
 		methodMenu.Visible = true
 		TweenService:Create(methodMenu, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-			Size = UDim2.new(0, 180, 0, 155)
+			Size = UDim2.new(0, 160, 0, 155)
 		}):Play()
 		TweenService:Create(methodBtn, TweenInfo.new(0.2), {
 			Rotation = 45,
@@ -206,362 +235,652 @@ methodBtn.Activated:Connect(function()
 		}):Play()
 	else
 		TweenService:Create(methodMenu, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
-			Size = UDim2.new(0, 180, 0, 0)
+			Size = UDim2.new(0, 160, 0, 0)
 		}):Play()
 		TweenService:Create(methodBtn, TweenInfo.new(0.2), {
 			Rotation = 0,
-			BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+			BackgroundColor3 = Color3.fromRGB(46, 147, 216)
 		}):Play()
 		task.wait(0.2)
 		methodMenu.Visible = false
 	end
 end)
 
+-- Status Indicator
+local statusDot = Instance.new("Frame")
+statusDot.Size = UDim2.new(0, 10, 0, 10)
+statusDot.Position = UDim2.new(1, -15, 0, 12)
+statusDot.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+statusDot.BorderSizePixel = 0
+statusDot.Parent = dragHandle
+
+local dotCorner = Instance.new("UICorner")
+dotCorner.CornerRadius = UDim.new(0.5, 0)
+dotCorner.Parent = statusDot
+
+-- Toggle Button
 local toggleBtn = Instance.new("TextButton")
-toggleBtn.Size = UDim2.new(1, -20, 0, 45)
+toggleBtn.Size = UDim2.new(1, -20, 0, 35)
 toggleBtn.Position = UDim2.new(0, 10, 0, 45)
 toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-toggleBtn.Text = "🎯 DISABLED"
+toggleBtn.Text = "DISABLED"
 toggleBtn.Font = Enum.Font.GothamBold
-toggleBtn.TextSize = 18
+toggleBtn.TextSize = 14
 toggleBtn.TextColor3 = Color3.new(1, 1, 1)
 toggleBtn.Parent = mainFrame
 
 local toggleCorner = Instance.new("UICorner")
-toggleCorner.CornerRadius = UDim.new(0, 10)
+toggleCorner.CornerRadius = UDim.new(0, 8)
 toggleCorner.Parent = toggleBtn
 
+-- Size Label
 local sizeLabel = Instance.new("TextLabel")
-sizeLabel.Size = UDim2.new(1, -20, 0, 25)
-sizeLabel.Position = UDim2.new(0, 10, 0, 100)
+sizeLabel.Size = UDim2.new(1, -20, 0, 20)
+sizeLabel.Position = UDim2.new(0, 10, 0, 90)
 sizeLabel.BackgroundTransparency = 1
 sizeLabel.Text = "Size: 10 studs"
-sizeLabel.Font = Enum.Font.GothamBold
-sizeLabel.TextSize = 14
+sizeLabel.Font = Enum.Font.Gotham
+sizeLabel.TextSize = 12
 sizeLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
 sizeLabel.TextXAlignment = Enum.TextXAlignment.Left
 sizeLabel.Parent = mainFrame
 
-local sizeSlider = Instance.new("Frame")
-sizeSlider.Size = UDim2.new(1, -20, 0, 8)
-sizeSlider.Position = UDim2.new(0, 10, 0, 130)
-sizeSlider.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-sizeSlider.BorderSizePixel = 0
-sizeSlider.Parent = mainFrame
+-- Size Slider
+local sizeSliderFrame = Instance.new("Frame")
+sizeSliderFrame.Size = UDim2.new(1, -20, 0, 8)
+sizeSliderFrame.Position = UDim2.new(0, 10, 0, 115)
+sizeSliderFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+sizeSliderFrame.BorderSizePixel = 0
+sizeSliderFrame.Parent = mainFrame
 
-local sliderCorner = Instance.new("UICorner")
-sliderCorner.CornerRadius = UDim.new(0.5, 0)
-sliderCorner.Parent = sizeSlider
+local sizeSliderCorner = Instance.new("UICorner")
+sizeSliderCorner.CornerRadius = UDim.new(0.5, 0)
+sizeSliderCorner.Parent = sizeSliderFrame
 
-local sliderFill = Instance.new("Frame")
-sliderFill.Size = UDim2.new(0.2, 0, 1, 0)
-sliderFill.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
-sliderFill.BorderSizePixel = 0
-sliderFill.Parent = sizeSlider
+local sizeSliderFill = Instance.new("Frame")
+sizeSliderFill.Size = UDim2.new(0.18, 0, 1, 0)
+sizeSliderFill.BackgroundColor3 = Color3.fromRGB(255, 150, 50)
+sizeSliderFill.BorderSizePixel = 0
+sizeSliderFill.Parent = sizeSliderFrame
 
-local fillCorner = Instance.new("UICorner")
-fillCorner.CornerRadius = UDim.new(0.5, 0)
-fillCorner.Parent = sliderFill
+local sizeFillCorner = Instance.new("UICorner")
+sizeFillCorner.CornerRadius = UDim.new(0.5, 0)
+sizeFillCorner.Parent = sizeSliderFill
 
-local sliderKnob = Instance.new("TextButton")
-sliderKnob.Size = UDim2.new(0, 16, 0, 16)
-sliderKnob.Position = UDim2.new(0.2, -8, 0.5, -8)
-sliderKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-sliderKnob.Text = ""
-sliderKnob.Parent = sizeSlider
+local sizeSliderKnob = Instance.new("TextButton")
+sizeSliderKnob.Size = UDim2.new(0, 16, 0, 16)
+sizeSliderKnob.Position = UDim2.new(0.18, -8, 0.5, -8)
+sizeSliderKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+sizeSliderKnob.Text = ""
+sizeSliderKnob.Parent = sizeSliderFrame
 
-local knobCorner = Instance.new("UICorner")
-knobCorner.CornerRadius = UDim.new(0.5, 0)
-knobCorner.Parent = sliderKnob
+local sizeKnobCorner = Instance.new("UICorner")
+sizeKnobCorner.CornerRadius = UDim.new(0.5, 0)
+sizeKnobCorner.Parent = sizeSliderKnob
 
-local transparentToggle = Instance.new("TextButton")
-transparentToggle.Size = UDim2.new(1, -20, 0, 35)
-transparentToggle.Position = UDim2.new(0, 10, 0, 150)
-transparentToggle.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
-transparentToggle.Text = "👁️ Transparent: ON"
-transparentToggle.Font = Enum.Font.GothamBold
-transparentToggle.TextSize = 13
-transparentToggle.TextColor3 = Color3.new(1, 1, 1)
-transparentToggle.Parent = mainFrame
+-- Transparency Label
+local transLabel = Instance.new("TextLabel")
+transLabel.Size = UDim2.new(1, -20, 0, 20)
+transLabel.Position = UDim2.new(0, 10, 0, 135)
+transLabel.BackgroundTransparency = 1
+transLabel.Text = "Visual: 70%"
+transLabel.Font = Enum.Font.Gotham
+transLabel.TextSize = 12
+transLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+transLabel.TextXAlignment = Enum.TextXAlignment.Left
+transLabel.Parent = mainFrame
 
-local transCorner = Instance.new("UICorner")
-transCorner.CornerRadius = UDim.new(0, 8)
-transCorner.Parent = transparentToggle
+-- Transparency Slider
+local transSliderFrame = Instance.new("Frame")
+transSliderFrame.Size = UDim2.new(1, -20, 0, 8)
+transSliderFrame.Position = UDim2.new(0, 10, 0, 160)
+transSliderFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+transSliderFrame.BorderSizePixel = 0
+transSliderFrame.Parent = mainFrame
 
-local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(1, -20, 0, 70)
-statusLabel.Position = UDim2.new(0, 10, 0, 195)
-statusLabel.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-statusLabel.BorderSizePixel = 0
-statusLabel.Text = "Status: Ready\nMethod: HRP EXPAND\nDamage: Working\n\nSize Range: 2-50 studs"
-statusLabel.Font = Enum.Font.Gotham
-statusLabel.TextSize = 10
-statusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-statusLabel.TextXAlignment = Enum.TextXAlignment.Left
-statusLabel.TextYAlignment = Enum.TextYAlignment.Top
-statusLabel.Parent = mainFrame
+local transSliderCorner = Instance.new("UICorner")
+transSliderCorner.CornerRadius = UDim.new(0.5, 0)
+transSliderCorner.Parent = transSliderFrame
 
-local statusCorner2 = Instance.new("UICorner")
-statusCorner2.CornerRadius = UDim.new(0, 8)
-statusCorner2.Parent = statusLabel
+local transSliderFill = Instance.new("Frame")
+transSliderFill.Size = UDim2.new(0.7, 0, 1, 0)
+transSliderFill.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
+transSliderFill.BorderSizePixel = 0
+transSliderFill.Parent = transSliderFrame
 
-local statusPadding = Instance.new("UIPadding")
-statusPadding.PaddingLeft = UDim.new(0, 8)
-statusPadding.PaddingTop = UDim.new(0, 8)
-statusPadding.Parent = statusLabel
+local transFillCorner = Instance.new("UICorner")
+transFillCorner.CornerRadius = UDim.new(0.5, 0)
+transFillCorner.Parent = transSliderFill
 
+local transSliderKnob = Instance.new("TextButton")
+transSliderKnob.Size = UDim2.new(0, 16, 0, 16)
+transSliderKnob.Position = UDim2.new(0.7, -8, 0.5, -8)
+transSliderKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+transSliderKnob.Text = ""
+transSliderKnob.Parent = transSliderFrame
+
+local transKnobCorner = Instance.new("UICorner")
+transKnobCorner.CornerRadius = UDim.new(0.5, 0)
+transKnobCorner.Parent = transSliderKnob
+
+-- Visualize Toggle
+local vizBtn = Instance.new("TextButton")
+vizBtn.Size = UDim2.new(0.48, 0, 0, 30)
+vizBtn.Position = UDim2.new(0, 10, 0, 180)
+vizBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
+vizBtn.Text = "Visual: ON"
+vizBtn.Font = Enum.Font.GothamBold
+vizBtn.TextSize = 11
+vizBtn.TextColor3 = Color3.new(1, 1, 1)
+vizBtn.Parent = mainFrame
+
+local vizCorner = Instance.new("UICorner")
+vizCorner.CornerRadius = UDim.new(0, 6)
+vizCorner.Parent = vizBtn
+
+-- Target Label
+local targetLabel = Instance.new("TextLabel")
+targetLabel.Size = UDim2.new(1, -20, 0, 20)
+targetLabel.Position = UDim2.new(0, 10, 0, 220)
+targetLabel.BackgroundTransparency = 1
+targetLabel.Text = "Target: All Players"
+targetLabel.Font = Enum.Font.Gotham
+targetLabel.TextSize = 11
+targetLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+targetLabel.TextXAlignment = Enum.TextXAlignment.Left
+targetLabel.Parent = mainFrame
+
+-- Apply to All Button
+local applyAllBtn = Instance.new("TextButton")
+applyAllBtn.Size = UDim2.new(1, -20, 0, 30)
+applyAllBtn.Position = UDim2.new(0, 10, 0, 245)
+applyAllBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 50)
+applyAllBtn.Text = "APPLY TO ALL"
+applyAllBtn.Font = Enum.Font.GothamBold
+applyAllBtn.TextSize = 12
+applyAllBtn.TextColor3 = Color3.new(1, 1, 1)
+applyAllBtn.Parent = mainFrame
+
+local applyCorner = Instance.new("UICorner")
+applyCorner.CornerRadius = UDim.new(0, 8)
+applyCorner.Parent = applyAllBtn
+
+-- Info Label
 local infoLabel = Instance.new("TextLabel")
-infoLabel.Size = UDim2.new(1, -20, 0, 100)
-infoLabel.Position = UDim2.new(0, 10, 0, 275)
+infoLabel.Size = UDim2.new(1, -20, 0, 30)
+infoLabel.Position = UDim2.new(0, 10, 0, 285)
 infoLabel.BackgroundTransparency = 1
-infoLabel.Text = "⚡ MULTI-UNIVERSAL HITBOX\n\n✅ Expands hit detection\n✅ Works with damage\n✅ Invisible to others\n✅ Multiple methods\n✅ Battlegrounds compatible"
+infoLabel.Text = "Universal bypass"
 infoLabel.Font = Enum.Font.Gotham
-infoLabel.TextSize = 9
+infoLabel.TextSize = 10
 infoLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-infoLabel.TextXAlignment = Enum.TextXAlignment.Left
-infoLabel.TextYAlignment = Enum.TextYAlignment.Top
+infoLabel.TextXAlignment = Enum.TextXAlignment.Center
 infoLabel.Parent = mainFrame
 
 -- Dragging
-local dragging, miniDragging = false, false
-local dragStart, startPos, miniDragStart, miniStartPos
+local dragging = false
+local dragStart, startPos
 
 dragHandle.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 		dragging = true
 		dragStart = input.Position
 		startPos = mainFrame.Position
+		
 		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then dragging = false end
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
 		end)
 	end
 end)
 
 dragHandle.InputChanged:Connect(function(input)
-	if (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) and dragging then
-		local delta = input.Position - dragStart
-		mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		if dragging then
+			local delta = input.Position - dragStart
+			mainFrame.Position = UDim2.new(
+				startPos.X.Scale, startPos.X.Offset + delta.X,
+				startPos.Y.Scale, startPos.Y.Offset + delta.Y
+			)
+		end
 	end
 end)
+
+-- Mini button dragging
+local miniDragging = false
+local miniDragStart, miniStartPos
 
 miniBtn.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 		miniDragging = true
 		miniDragStart = input.Position
 		miniStartPos = miniBtn.Position
+		
 		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then miniDragging = false end
+			if input.UserInputState == Enum.UserInputState.End then
+				miniDragging = false
+			end
 		end)
 	end
 end)
 
 miniBtn.InputChanged:Connect(function(input)
-	if (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) and miniDragging then
-		local delta = input.Position - miniDragStart
-		miniBtn.Position = UDim2.new(miniStartPos.X.Scale, miniStartPos.X.Offset + delta.X, miniStartPos.Y.Scale, miniStartPos.Y.Offset + delta.Y)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		if miniDragging then
+			local delta = input.Position - miniDragStart
+			miniBtn.Position = UDim2.new(
+				miniStartPos.X.Scale, miniStartPos.X.Offset + delta.X,
+				miniStartPos.Y.Scale, miniStartPos.Y.Offset + delta.Y
+			)
+		end
 	end
 end)
 
+-- Minimize/Maximize
+local isMinimized = false
+
 minimizeBtn.Activated:Connect(function()
-	TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Size = UDim2.new(0, 0, 0, 0)}):Play()
+	isMinimized = true
+	TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+		Size = UDim2.new(0, 0, 0, 0)
+	}):Play()
+	
 	task.wait(0.3)
 	mainFrame.Visible = false
 	miniBtn.Visible = true
+	
 	miniBtn.Size = UDim2.new(0, 0, 0, 0)
-	TweenService:Create(miniBtn, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 60, 0, 60)}):Play()
+	TweenService:Create(miniBtn, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+		Size = UDim2.new(0, 50, 0, 50)
+	}):Play()
 end)
 
 miniBtn.Activated:Connect(function()
 	if not miniDragging then
-		TweenService:Create(miniBtn, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Size = UDim2.new(0, 0, 0, 0)}):Play()
+		isMinimized = false
+		
+		TweenService:Create(miniBtn, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+			Size = UDim2.new(0, 0, 0, 0)
+		}):Play()
+		
 		task.wait(0.2)
 		miniBtn.Visible = false
 		mainFrame.Visible = true
+		
 		mainFrame.Size = UDim2.new(0, 0, 0, 0)
-		TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 200, 0, 380)}):Play()
+		TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+			Size = UDim2.new(0, 170, 0, 320)
+		}):Play()
 	end
 end)
 
 -- Size slider
-local sliderDragging = false
-local transparentEnabled = true
+local sizeSliderDragging = false
 
-sliderKnob.InputBegan:Connect(function(input)
+sizeSliderKnob.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		sliderDragging = true
+		sizeSliderDragging = true
+		
 		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then sliderDragging = false end
+			if input.UserInputState == Enum.UserInputState.End then
+				sizeSliderDragging = false
+			end
 		end)
 	end
 end)
 
-sliderKnob.InputChanged:Connect(function(input)
-	if (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) and sliderDragging then
-		local mousePos = input.Position
-		local sliderPos = sizeSlider.AbsolutePosition
-		local sliderSize = sizeSlider.AbsoluteSize
-		
-		local relativeX = math.clamp((mousePos.X - sliderPos.X) / sliderSize.X, 0, 1)
-		currentSize = math.floor(2 + (relativeX * 48)) -- 2 to 50 studs
-		
-		sliderFill.Size = UDim2.new(relativeX, 0, 1, 0)
-		sliderKnob.Position = UDim2.new(relativeX, -8, 0.5, -8)
-		sizeLabel.Text = "Size: " .. currentSize .. " studs"
-		
-		if hitboxEnabled then
-			enableHitbox()
+sizeSliderKnob.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		if sizeSliderDragging then
+			local mousePos = input.Position
+			local sliderPos = sizeSliderFrame.AbsolutePosition
+			local sliderSize = sizeSliderFrame.AbsoluteSize
+			
+			local relativeX = math.clamp((mousePos.X - sliderPos.X) / sliderSize.X, 0, 1)
+			currentSize = math.floor(relativeX * 50) + 1
+			
+			sizeSliderFill.Size = UDim2.new(relativeX, 0, 1, 0)
+			sizeSliderKnob.Position = UDim2.new(relativeX, -8, 0.5, -8)
+			sizeLabel.Text = "Size: " .. currentSize .. " studs"
+			
+			if hitboxEnabled then
+				applyHitbox()
+			end
 		end
 	end
 end)
 
-transparentToggle.Activated:Connect(function()
-	transparentEnabled = not transparentEnabled
-	
-	if transparentEnabled then
-		transparentToggle.Text = "👁️ Transparent: ON"
-		transparentToggle.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
-	else
-		transparentToggle.Text = "👁️ Transparent: OFF"
-		transparentToggle.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-	end
-	
-	if hitboxEnabled then
-		enableHitbox()
+-- Transparency slider
+local transSliderDragging = false
+
+transSliderKnob.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		transSliderDragging = true
+		
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				transSliderDragging = false
+			end
+		end)
 	end
 end)
 
--- HITBOX EXPANSION SYSTEM
-local originalSizes = {}
-local expandedParts = {}
+transSliderKnob.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		if transSliderDragging then
+			local mousePos = input.Position
+			local sliderPos = transSliderFrame.AbsolutePosition
+			local sliderSize = transSliderFrame.AbsoluteSize
+			
+			local relativeX = math.clamp((mousePos.X - sliderPos.X) / sliderSize.X, 0, 1)
+			currentTransparency = relativeX
+			
+			transSliderFill.Size = UDim2.new(relativeX, 0, 1, 0)
+			transSliderKnob.Position = UDim2.new(relativeX, -8, 0.5, -8)
+			transLabel.Text = "Visual: " .. math.floor(relativeX * 100) .. "%"
+			
+			if hitboxEnabled and visualizeEnabled then
+				for _, part in pairs(hitboxParts) do
+					if part and part.Parent then
+						part.Transparency = currentTransparency
+					end
+				end
+			end
+		end
+	end
+end)
 
-function enableHitbox()
-	if not character then return end
+-- Visualize toggle
+vizBtn.Activated:Connect(function()
+	visualizeEnabled = not visualizeEnabled
 	
-	-- Clear previous
-	for part, _ in pairs(expandedParts) do
-		if part and part.Parent then
-			if originalSizes[part] then
-				part.Size = originalSizes[part]
+	if visualizeEnabled then
+		vizBtn.Text = "Visual: ON"
+		vizBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
+		
+		if hitboxEnabled then
+			for _, part in pairs(hitboxParts) do
+				if part and part.Parent then
+					part.Transparency = currentTransparency
+				end
+			end
+		end
+	else
+		vizBtn.Text = "Visual: OFF"
+		vizBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+		
+		for _, part in pairs(hitboxParts) do
+			if part and part.Parent then
 				part.Transparency = 1
 			end
 		end
 	end
-	expandedParts = {}
-	
-	if currentMethod == "hrp" then
-		-- HRP EXPAND (Most Universal)
-		if hrp then
-			if not originalSizes[hrp] then
-				originalSizes[hrp] = hrp.Size
-			end
-			hrp.Size = Vector3.new(currentSize, currentSize, currentSize)
-			hrp.Transparency = transparentEnabled and 1 or 0.5
-			hrp.CanCollide = false
-			expandedParts[hrp] = true
-		end
-		
-	elseif currentMethod == "allparts" then
-		-- ALL PARTS (Full Body Hitbox)
-		for _, part in pairs(character:GetChildren()) do
-			if part:IsA("BasePart") then
-				if not originalSizes[part] then
-					originalSizes[part] = part.Size
-				end
-				part.Size = Vector3.new(currentSize, currentSize, currentSize)
-				part.Transparency = transparentEnabled and 1 or 0.5
-				part.CanCollide = false
-				expandedParts[part] = true
-			end
-		end
-		
-	elseif currentMethod == "limbs" then
-		-- LIMB ONLY (Arms and Legs)
-		local limbs = {"LeftUpperArm", "LeftLowerArm", "LeftHand", "RightUpperArm", "RightLowerArm", "RightHand",
-			"LeftUpperLeg", "LeftLowerLeg", "LeftFoot", "RightUpperLeg", "RightLowerLeg", "RightFoot",
-			"Left Arm", "Right Arm", "Left Leg", "Right Leg"}
-		
-		for _, limbName in ipairs(limbs) do
-			local limb = character:FindFirstChild(limbName)
-			if limb and limb:IsA("BasePart") then
-				if not originalSizes[limb] then
-					originalSizes[limb] = limb.Size
-				end
-				limb.Size = Vector3.new(currentSize, currentSize, currentSize)
-				limb.Transparency = transparentEnabled and 1 or 0.5
-				limb.CanCollide = false
-				expandedParts[limb] = true
-			end
-		end
-		
-	elseif currentMethod == "battlegrounds" then
-		-- BATTLEGROUNDS (HRP + Torso combo for combat games)
-		if hrp then
-			if not originalSizes[hrp] then
-				originalSizes[hrp] = hrp.Size
-			end
-			hrp.Size = Vector3.new(currentSize, currentSize, currentSize)
-			hrp.Transparency = transparentEnabled and 1 or 0.5
-			hrp.CanCollide = false
-			expandedParts[hrp] = true
-		end
-		
-		local torso = character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso")
-		if torso then
-			if not originalSizes[torso] then
-				originalSizes[torso] = torso.Size
-			end
-			torso.Size = Vector3.new(currentSize * 0.8, currentSize * 0.8, currentSize * 0.8)
-			torso.Transparency = transparentEnabled and 1 or 0.5
-			torso.CanCollide = false
-			expandedParts[torso] = true
-		end
-	end
-	
-	statusLabel.Text = "Status: ACTIVE ✅\nMethod: " .. currentMethod:upper() .. "\nDamage: Working\n\nSize: " .. currentSize .. " studs"
-end
+end)
 
-function disableHitbox()
-	if not character then return end
-	
-	-- Restore all sizes
-	for part, size in pairs(originalSizes) do
+-- Apply hitbox function
+function applyHitbox()
+	-- Clear old hitbox parts
+	for _, part in pairs(hitboxParts) do
 		if part and part.Parent then
-			part.Size = size
-			part.Transparency = part.Name == "HumanoidRootPart" and 1 or 0
-			part.CanCollide = true
+			part:Destroy()
+		end
+	end
+	hitboxParts = {}
+	
+	for _, targetPlayer in ipairs(Players:GetPlayers()) do
+		if targetPlayer ~= player and targetPlayer.Character then
+			local targetChar = targetPlayer.Character
+			local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
+			local targetHum = targetChar:FindFirstChildWhichIsA("Humanoid")
+			
+			if targetHRP and targetHum and targetHum.Health > 0 then
+				-- Store original size
+				if not originalSizes[targetHRP] then
+					originalSizes[targetHRP] = targetHRP.Size
+				end
+				
+				if currentMethod == "expand" then
+					-- METHOD 1: Direct size expansion
+					targetHRP.Size = Vector3.new(currentSize, currentSize, currentSize)
+					targetHRP.Transparency = visualizeEnabled and currentTransparency or 1
+					targetHRP.CanCollide = false
+					
+				elseif currentMethod == "hybrid" then
+					-- METHOD 2: Hybrid (size + invisible part)
+					targetHRP.Size = Vector3.new(currentSize * 0.6, currentSize * 0.6, currentSize * 0.6)
+					targetHRP.Transparency = 1
+					targetHRP.CanCollide = false
+					
+					local hitboxPart = Instance.new("Part")
+					hitboxPart.Size = Vector3.new(currentSize, currentSize, currentSize)
+					hitboxPart.CFrame = targetHRP.CFrame
+					hitboxPart.Transparency = visualizeEnabled and currentTransparency or 1
+					hitboxPart.CanCollide = false
+					hitboxPart.Anchored = false
+					hitboxPart.Material = Enum.Material.ForceField
+					hitboxPart.Color = Color3.fromRGB(255, 100, 100)
+					hitboxPart.Name = "HitboxExpander"
+					
+					-- Weld to target
+					local weld = Instance.new("WeldConstraint")
+					weld.Part0 = targetHRP
+					weld.Part1 = hitboxPart
+					weld.Parent = hitboxPart
+					
+					hitboxPart.Parent = targetChar
+					table.insert(hitboxParts, hitboxPart)
+					
+				elseif currentMethod == "phantom" then
+					-- METHOD 3: Phantom (invisible enlarged hitbox with damage detection)
+					local hitboxPart = Instance.new("Part")
+					hitboxPart.Size = Vector3.new(currentSize, currentSize, currentSize)
+					hitboxPart.CFrame = targetHRP.CFrame
+					hitboxPart.Transparency = visualizeEnabled and currentTransparency or 1
+					hitboxPart.CanCollide = false
+					hitboxPart.Anchored = false
+					hitboxPart.Material = Enum.Material.Neon
+					hitboxPart.Color = Color3.fromRGB(255, 150, 50)
+					hitboxPart.Name = "PhantomHitbox"
+					
+					-- Make it massless so it doesn't affect physics
+					hitboxPart.Massless = true
+					
+					-- Weld to target
+					local weld = Instance.new("WeldConstraint")
+					weld.Part0 = targetHRP
+					weld.Part1 = hitboxPart
+					weld.Parent = hitboxPart
+					
+					-- Copy collision properties
+					for _, v in pairs(targetHRP:GetChildren()) do
+						if v:IsA("TouchTransmitter") then
+							v:Clone().Parent = hitboxPart
+						end
+					end
+					
+					hitboxPart.Parent = targetChar
+					table.insert(hitboxParts, hitboxPart)
+					
+				elseif currentMethod == "clone" then
+					-- METHOD 4: Clone multiple hitbox parts around target
+					for i = 1, 4 do
+						local hitboxPart = Instance.new("Part")
+						hitboxPart.Size = Vector3.new(currentSize * 0.7, currentSize * 0.7, currentSize * 0.7)
+						
+						-- Position clones in a cross pattern
+						local offset = Vector3.zero
+						if i == 1 then offset = Vector3.new(currentSize * 0.3, 0, 0)
+						elseif i == 2 then offset = Vector3.new(-currentSize * 0.3, 0, 0)
+						elseif i == 3 then offset = Vector3.new(0, 0, currentSize * 0.3)
+						elseif i == 4 then offset = Vector3.new(0, 0, -currentSize * 0.3)
+						end
+						
+						hitboxPart.CFrame = targetHRP.CFrame * CFrame.new(offset)
+						hitboxPart.Transparency = visualizeEnabled and currentTransparency or 1
+						hitboxPart.CanCollide = false
+						hitboxPart.Anchored = false
+						hitboxPart.Material = Enum.Material.Glass
+						hitboxPart.Color = Color3.fromRGB(100, 200, 255)
+						hitboxPart.Name = "ClonedHitbox"
+						hitboxPart.Massless = true
+						
+						-- Weld to target
+						local weld = Instance.new("WeldConstraint")
+						weld.Part0 = targetHRP
+						weld.Part1 = hitboxPart
+						weld.Parent = hitboxPart
+						
+						hitboxPart.Parent = targetChar
+						table.insert(hitboxParts, hitboxPart)
+					end
+				end
+			end
+		end
+	end
+end
+
+-- Remove hitbox function
+function removeHitbox()
+	-- Restore original sizes
+	for hrp, originalSize in pairs(originalSizes) do
+		if hrp and hrp.Parent then
+			hrp.Size = originalSize
+			hrp.Transparency = 0
+			hrp.CanCollide = true
 		end
 	end
 	
-	expandedParts = {}
+	-- Remove all hitbox parts
+	for _, part in pairs(hitboxParts) do
+		if part and part.Parent then
+			part:Destroy()
+		end
+	end
 	
-	statusLabel.Text = "Status: Ready\nMethod: " .. currentMethod:upper() .. "\nDamage: Working\n\nSize Range: 2-50 studs"
+	hitboxParts = {}
 end
 
--- Main Toggle
+-- Toggle button
 toggleBtn.Activated:Connect(function()
 	hitboxEnabled = not hitboxEnabled
 	
 	if hitboxEnabled then
-		toggleBtn.Text = "🎯 ENABLED"
-		toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
-		statusDot.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
-		enableHitbox()
+		toggleBtn.Text = "ENABLED"
+		toggleBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
+		statusDot.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
+		applyHitbox()
 	else
-		toggleBtn.Text = "🎯 DISABLED"
+		toggleBtn.Text = "DISABLED"
 		toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
 		statusDot.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-		disableHitbox()
+		removeHitbox()
 	end
 end)
 
-print("===========================================")
-print("Multi-Universal Hitbox Expander")
-print("===========================================")
-print("✅ METHOD 1: HRP EXPAND (Universal)")
-print("✅ METHOD 2: ALL PARTS (Full Body)")
-print("✅ METHOD 3: LIMB ONLY (Arms/Legs)")
-print("✅ METHOD 4: BATTLEGROUNDS (Combat)")
-print("✅ Size: 2-50 studs adjustable")
-print("✅ Transparent option")
-print("✅ DAMAGE WORKS!")
-print("===========================================")
+-- Apply to all button
+applyAllBtn.Activated:Connect(function()
+	if hitboxEnabled then
+		applyHitbox()
+		
+		-- Visual feedback
+		applyAllBtn.Text = "APPLIED!"
+		applyAllBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
+		task.wait(0.5)
+		applyAllBtn.Text = "APPLY TO ALL"
+		applyAllBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 50)
+	else
+		applyAllBtn.Text = "ENABLE FIRST!"
+		applyAllBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+		task.wait(1)
+		applyAllBtn.Text = "APPLY TO ALL"
+		applyAllBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 50)
+	end
+end)
+
+-- Monitor for new players
+Players.PlayerAdded:Connect(function(newPlayer)
+	newPlayer.CharacterAdded:Connect(function()
+		task.wait(1)
+		if hitboxEnabled then
+			applyHitbox()
+		end
+	end)
+end)
+
+-- Monitor existing players respawning
+for _, existingPlayer in ipairs(Players:GetPlayers()) do
+	if existingPlayer ~= player then
+		existingPlayer.CharacterAdded:Connect(function()
+			task.wait(1)
+			if hitboxEnabled then
+				applyHitbox()
+			end
+		end)
+	end
+end
+
+-- Continuous monitoring loop (for games that reset hitboxes)
+spawn(function()
+	while true do
+		wait(2)
+		if hitboxEnabled then
+			-- Re-apply if hitboxes were reset by game
+			local needsReapply = false
+			
+			for _, targetPlayer in ipairs(Players:GetPlayers()) do
+				if targetPlayer ~= player and targetPlayer.Character then
+					local targetHRP = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+					if targetHRP and originalSizes[targetHRP] then
+						if currentMethod == "expand" then
+							if targetHRP.Size ~= Vector3.new(currentSize, currentSize, currentSize) then
+								needsReapply = true
+								break
+							end
+						end
+					end
+				end
+			end
+			
+			-- Check if hitbox parts still exist
+			for i = #hitboxParts, 1, -1 do
+				if not hitboxParts[i] or not hitboxParts[i].Parent then
+					needsReapply = true
+					table.remove(hitboxParts, i)
+				end
+			end
+			
+			if needsReapply then
+				applyHitbox()
+			end
+		end
+	end
+end)
+
+-- Update hitbox positions every frame (for methods that use welded parts)
+RunService.Heartbeat:Connect(function()
+	if hitboxEnabled then
+		for _, part in pairs(hitboxParts) do
+			if part and part.Parent then
+				-- Ensure visibility matches setting
+				if visualizeEnabled then
+					if part.Transparency ~= currentTransparency then
+						part.Transparency = currentTransparency
+					end
+				else
+					if part.Transparency ~= 1 then
+						part.Transparency = 1
+					end
+				end
+			end
+		end
+	end
+end)
+
+print("Multi-Universal Hitbox Adjuster [BYPASS EDITION] loaded!")
+print("✅ 4 Methods: HYBRID/EXPAND/PHANTOM/CLONE")
+print("✅ Bypasses hitbox damage restrictions")
+print("✅ Auto-reapplies if game resets hitboxes")
+print("✅ Works on new players joining")
+print("💡 Click [+] to switch methods | [-] to minimize")
+print("🎯 Adjust size slider for bigger hitboxes!")
