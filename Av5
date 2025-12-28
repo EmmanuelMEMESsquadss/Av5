@@ -35,8 +35,8 @@ gui.Parent = player:WaitForChild("PlayerGui")
 
 -- Minimized draggable button
 local miniBtn = Instance.new("ImageButton")
-miniBtn.Size = UDim2.new(0, 80, 0, 80)
-miniBtn.Position = UDim2.new(0.5, -40, 1, -100)
+miniBtn.Size = UDim2.new(0, 65, 0, 65)
+miniBtn.Position = UDim2.new(1, -80, 1, -80)
 miniBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
 miniBtn.BorderSizePixel = 0
 miniBtn.Image = ""
@@ -80,8 +80,8 @@ miniLabel.Parent = miniBtn
 
 -- Badge
 local badge = Instance.new("Frame")
-badge.Size = UDim2.new(0, 24, 0, 24)
-badge.Position = UDim2.new(1, -10, 0, -10)
+badge.Size = UDim2.new(0, 20, 0, 20)
+badge.Position = UDim2.new(1, -8, 0, -8)
 badge.BackgroundColor3 = Color3.fromRGB(255, 70, 70)
 badge.BorderSizePixel = 0
 badge.ZIndex = 11
@@ -96,7 +96,7 @@ badgeLabel.Size = UDim2.new(1, 0, 1, 0)
 badgeLabel.BackgroundTransparency = 1
 badgeLabel.Text = "0"
 badgeLabel.Font = Enum.Font.GothamBold
-badgeLabel.TextSize = 12
+badgeLabel.TextSize = 10
 badgeLabel.TextColor3 = Color3.new(1, 1, 1)
 badgeLabel.ZIndex = 12
 badgeLabel.Parent = badge
@@ -110,8 +110,8 @@ miniStroke.Parent = miniBtn
 
 -- Main panel (modern style)
 local mainPanel = Instance.new("Frame")
-mainPanel.Size = UDim2.new(0, 380, 0, 550)
-mainPanel.Position = UDim2.new(0.5, -190, 0.5, -275)
+mainPanel.Size = UDim2.new(0, 360, 0, 520)
+mainPanel.Position = UDim2.new(0.5, -180, 0.5, -260)
 mainPanel.BackgroundColor3 = Color3.fromRGB(18, 18, 25)
 mainPanel.BorderSizePixel = 0
 mainPanel.Visible = false
@@ -195,7 +195,7 @@ closeCorner.Parent = closeBtn
 
 -- TP Tool section (NEW!)
 local toolSection = Instance.new("Frame")
-toolSection.Size = UDim2.new(1, -30, 0, 100)
+toolSection.Size = UDim2.new(1, -30, 0, 90)
 toolSection.Position = UDim2.new(0, 15, 0, 70)
 toolSection.BackgroundColor3 = Color3.fromRGB(30, 30, 42)
 toolSection.BorderSizePixel = 0
@@ -214,8 +214,8 @@ toolStroke.Parent = toolSection
 
 -- Tool icon
 local toolIconBig = Instance.new("ImageLabel")
-toolIconBig.Size = UDim2.new(0, 50, 0, 50)
-toolIconBig.Position = UDim2.new(0, 15, 0, 25)
+toolIconBig.Size = UDim2.new(0, 45, 0, 45)
+toolIconBig.Position = UDim2.new(0, 15, 0, 22)
 toolIconBig.BackgroundTransparency = 1
 toolIconBig.Image = "rbxassetid://3926305904"
 toolIconBig.ImageColor3 = Color3.fromRGB(100, 200, 255)
@@ -224,24 +224,24 @@ toolIconBig.Parent = toolSection
 
 -- Tool info
 local toolTitle = Instance.new("TextLabel")
-toolTitle.Size = UDim2.new(1, -180, 0, 22)
-toolTitle.Position = UDim2.new(0, 75, 0, 15)
+toolTitle.Size = UDim2.new(1, -180, 0, 20)
+toolTitle.Position = UDim2.new(0, 70, 0, 15)
 toolTitle.BackgroundTransparency = 1
 toolTitle.Text = "🎯 TP TOOL"
 toolTitle.Font = Enum.Font.GothamBold
-toolTitle.TextSize = 16
+toolTitle.TextSize = 15
 toolTitle.TextColor3 = Color3.fromRGB(100, 200, 255)
 toolTitle.TextXAlignment = Enum.TextXAlignment.Left
 toolTitle.ZIndex = 4
 toolTitle.Parent = toolSection
 
 local toolDesc = Instance.new("TextLabel")
-toolDesc.Size = UDim2.new(1, -180, 0, 35)
-toolDesc.Position = UDim2.new(0, 75, 0, 37)
+toolDesc.Size = UDim2.new(1, -180, 0, 32)
+toolDesc.Position = UDim2.new(0, 70, 0, 35)
 toolDesc.BackgroundTransparency = 1
 toolDesc.Text = "Tap anywhere to teleport\nWorks like a real tool!"
 toolDesc.Font = Enum.Font.Gotham
-toolDesc.TextSize = 11
+toolDesc.TextSize = 10
 toolDesc.TextColor3 = Color3.fromRGB(180, 180, 180)
 toolDesc.TextXAlignment = Enum.TextXAlignment.Left
 toolDesc.TextYAlignment = Enum.TextYAlignment.Top
@@ -250,12 +250,12 @@ toolDesc.Parent = toolSection
 
 -- Equip tool button
 local equipBtn = Instance.new("TextButton")
-equipBtn.Size = UDim2.new(0, 90, 0, 35)
-equipBtn.Position = UDim2.new(1, -105, 0, 32)
+equipBtn.Size = UDim2.new(0, 85, 0, 32)
+equipBtn.Position = UDim2.new(1, -100, 0, 29)
 equipBtn.BackgroundColor3 = Color3.fromRGB(60, 150, 255)
 equipBtn.Text = "EQUIP"
 equipBtn.Font = Enum.Font.GothamBold
-equipBtn.TextSize = 13
+equipBtn.TextSize = 12
 equipBtn.TextColor3 = Color3.new(1, 1, 1)
 equipBtn.ZIndex = 4
 equipBtn.Parent = toolSection
@@ -266,8 +266,8 @@ equipCorner.Parent = equipBtn
 
 -- Action buttons
 local actionBar = Instance.new("Frame")
-actionBar.Size = UDim2.new(1, -30, 0, 50)
-actionBar.Position = UDim2.new(0, 15, 0, 185)
+actionBar.Size = UDim2.new(1, -30, 0, 45)
+actionBar.Position = UDim2.new(0, 15, 0, 172)
 actionBar.BackgroundTransparency = 1
 actionBar.ZIndex = 3
 actionBar.Parent = mainPanel
@@ -303,8 +303,8 @@ quickCorner.Parent = quickTPBtn
 
 -- Settings
 local settingsBar = Instance.new("Frame")
-settingsBar.Size = UDim2.new(1, -30, 0, 40)
-settingsBar.Position = UDim2.new(0, 15, 0, 250)
+settingsBar.Size = UDim2.new(1, -30, 0, 38)
+settingsBar.Position = UDim2.new(0, 15, 0, 230)
 settingsBar.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 settingsBar.BorderSizePixel = 0
 settingsBar.ZIndex = 3
@@ -361,12 +361,12 @@ clearCorner.Parent = clearBtn
 
 -- Locations header
 local locHeader = Instance.new("TextLabel")
-locHeader.Size = UDim2.new(1, -30, 0, 30)
-locHeader.Position = UDim2.new(0, 15, 0, 305)
+locHeader.Size = UDim2.new(1, -30, 0, 28)
+locHeader.Position = UDim2.new(0, 15, 0, 280)
 locHeader.BackgroundTransparency = 1
 locHeader.Text = "📍 SAVED LOCATIONS (0/20)"
 locHeader.Font = Enum.Font.GothamBold
-locHeader.TextSize = 14
+locHeader.TextSize = 13
 locHeader.TextColor3 = Color3.fromRGB(200, 200, 200)
 locHeader.TextXAlignment = Enum.TextXAlignment.Left
 locHeader.ZIndex = 3
@@ -374,8 +374,8 @@ locHeader.Parent = mainPanel
 
 -- Locations scroll
 local locationsScroll = Instance.new("ScrollingFrame")
-locationsScroll.Size = UDim2.new(1, -30, 1, -350)
-locationsScroll.Position = UDim2.new(0, 15, 0, 340)
+locationsScroll.Size = UDim2.new(1, -30, 1, -320)
+locationsScroll.Position = UDim2.new(0, 15, 0, 312)
 locationsScroll.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
 locationsScroll.BorderSizePixel = 0
 locationsScroll.ScrollBarThickness = 6
@@ -488,13 +488,14 @@ miniBtn.Activated:Connect(function()
 		mainPanel.Visible = true
 		blurFrame.Visible = true
 		mainPanel.Size = UDim2.new(0, 0, 0, 0)
+		mainPanel.Position = UDim2.new(0.5, -180, 0.5, -260)
 		
 		TweenService:Create(mainPanel, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-			Size = UDim2.new(0, 380, 0, 550)
+			Size = UDim2.new(0, 360, 0, 520)
 		}):Play()
 		
 		TweenService:Create(miniBtn, TweenInfo.new(0.2), {
-			Size = UDim2.new(0, 85, 0, 85)
+			Size = UDim2.new(0, 70, 0, 70)
 		}):Play()
 	else
 		blurFrame.Visible = false
@@ -503,7 +504,7 @@ miniBtn.Activated:Connect(function()
 		}):Play()
 		
 		TweenService:Create(miniBtn, TweenInfo.new(0.2), {
-			Size = UDim2.new(0, 80, 0, 80)
+			Size = UDim2.new(0, 65, 0, 65)
 		}):Play()
 		
 		task.wait(0.3)
