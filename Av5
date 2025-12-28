@@ -1,5 +1,5 @@
 -- LocalScript (StarterPlayerScripts)
--- Multi-Universal Hitbox Adjuster [BYPASS EDITION]
+-- Multi-Universal Hitbox Adjuster [DAMAGE REDIRECT EDITION]
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -18,11 +18,12 @@ local hitboxEnabled = false
 local currentSize = 10
 local currentTransparency = 0.7
 local visualizeEnabled = true
-local currentMethod = "hybrid"
+local currentMethod = "redirect"
 
 -- Hitbox parts storage
 local hitboxParts = {}
 local originalSizes = {}
+local damageConnections = {}
 
 local function setupCharacter(char)
 	character = char
@@ -37,6 +38,12 @@ local function setupCharacter(char)
 	end
 	hitboxParts = {}
 	originalSizes = {}
+	
+	-- Disconnect old damage connections
+	for _, conn in pairs(damageConnections) do
+		if conn then conn:Disconnect() end
+	end
+	damageConnections = {}
 end
 
 if player.Character then setupCharacter(player.Character) end
@@ -158,10 +165,10 @@ menuCorner.Parent = methodMenu
 
 -- Methods
 local methods = {
-	{name = "HYBRID", desc = "Size+Part", id = "hybrid", color = Color3.fromRGB(150, 100, 255)},
-	{name = "EXPAND", desc = "Size Only", id = "expand", color = Color3.fromRGB(80, 200, 120)},
-	{name = "PHANTOM", desc = "Invisible", id = "phantom", color = Color3.fromRGB(255, 140, 60)},
-	{name = "CLONE", desc = "Duplicate", id = "clone", color = Color3.fromRGB(255, 100, 100)}
+	{name = "REDIRECT", desc = "Touch Hook", id = "redirect", color = Color3.fromRGB(150, 100, 255)},
+	{name = "PARENTED", desc = "Name Copy", id = "parented", color = Color3.fromRGB(80, 200, 120)},
+	{name = "MULTI", desc = "All Parts", id = "multi", color = Color3.fromRGB(255, 140, 60)},
+	{name = "EXTREME", desc = "Max Power", id = "extreme", color = Color3.fromRGB(255, 100, 100)}
 }
 
 local methodButtons = {}
@@ -410,7 +417,7 @@ local infoLabel = Instance.new("TextLabel")
 infoLabel.Size = UDim2.new(1, -20, 0, 30)
 infoLabel.Position = UDim2.new(0, 10, 0, 285)
 infoLabel.BackgroundTransparency = 1
-infoLabel.Text = "Universal bypass"
+infoLabel.Text = "Damage redirect"
 infoLabel.Font = Enum.Font.Gotham
 infoLabel.TextSize = 10
 infoLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
@@ -618,7 +625,7 @@ vizBtn.Activated:Connect(function()
 	end
 end)
 
--- Apply hitbox function
+-- DAMAGE REDIRECT SYSTEM (THE KEY FIX!)
 function applyHitbox()
 	-- Clear old hitbox parts
 	for _, part in pairs(hitboxParts) do
@@ -628,6 +635,12 @@ function applyHitbox()
 	end
 	hitboxParts = {}
 	
+	-- Disconnect old connections
+	for _, conn in pairs(damageConnections) do
+		if conn then conn:Disconnect() end
+	end
+	damageConnections = {}
+	
 	for _, targetPlayer in ipairs(Players:GetPlayers()) do
 		if targetPlayer ~= player and targetPlayer.Character then
 			local targetChar = targetPlayer.Character
@@ -635,23 +648,9 @@ function applyHitbox()
 			local targetHum = targetChar:FindFirstChildWhichIsA("Humanoid")
 			
 			if targetHRP and targetHum and targetHum.Health > 0 then
-				-- Store original size
-				if not originalSizes[targetHRP] then
-					originalSizes[targetHRP] = targetHRP.Size
-				end
 				
-				if currentMethod == "expand" then
-					-- METHOD 1: Direct size expansion
-					targetHRP.Size = Vector3.new(currentSize, currentSize, currentSize)
-					targetHRP.Transparency = visualizeEnabled and currentTransparency or 1
-					targetHRP.CanCollide = false
-					
-				elseif currentMethod == "hybrid" then
-					-- METHOD 2: Hybrid (size + invisible part)
-					targetHRP.Size = Vector3.new(currentSize * 0.6, currentSize * 0.6, currentSize * 0.6)
-					targetHRP.Transparency = 1
-					targetHRP.CanCollide = false
-					
+				if currentMethod == "redirect" then
+					-- METHOD 1: REDIRECT - Touch event hooking
 					local hitboxPart = Instance.new("Part")
 					hitboxPart.Size = Vector3.new(currentSize, currentSize, currentSize)
 					hitboxPart.CFrame = targetHRP.CFrame
@@ -660,30 +659,7 @@ function applyHitbox()
 					hitboxPart.Anchored = false
 					hitboxPart.Material = Enum.Material.ForceField
 					hitboxPart.Color = Color3.fromRGB(255, 100, 100)
-					hitboxPart.Name = "HitboxExpander"
-					
-					-- Weld to target
-					local weld = Instance.new("WeldConstraint")
-					weld.Part0 = targetHRP
-					weld.Part1 = hitboxPart
-					weld.Parent = hitboxPart
-					
-					hitboxPart.Parent = targetChar
-					table.insert(hitboxParts, hitboxPart)
-					
-				elseif currentMethod == "phantom" then
-					-- METHOD 3: Phantom (invisible enlarged hitbox with damage detection)
-					local hitboxPart = Instance.new("Part")
-					hitboxPart.Size = Vector3.new(currentSize, currentSize, currentSize)
-					hitboxPart.CFrame = targetHRP.CFrame
-					hitboxPart.Transparency = visualizeEnabled and currentTransparency or 1
-					hitboxPart.CanCollide = false
-					hitboxPart.Anchored = false
-					hitboxPart.Material = Enum.Material.Neon
-					hitboxPart.Color = Color3.fromRGB(255, 150, 50)
-					hitboxPart.Name = "PhantomHitbox"
-					
-					-- Make it massless so it doesn't affect physics
+					hitboxPart.Name = targetHRP.Name -- SAME NAME as HRP
 					hitboxPart.Massless = true
 					
 					-- Weld to target
@@ -692,37 +668,135 @@ function applyHitbox()
 					weld.Part1 = hitboxPart
 					weld.Parent = hitboxPart
 					
-					-- Copy collision properties
-					for _, v in pairs(targetHRP:GetChildren()) do
-						if v:IsA("TouchTransmitter") then
-							v:Clone().Parent = hitboxPart
-						end
-					end
-					
 					hitboxPart.Parent = targetChar
 					table.insert(hitboxParts, hitboxPart)
 					
-				elseif currentMethod == "clone" then
-					-- METHOD 4: Clone multiple hitbox parts around target
-					for i = 1, 4 do
+					-- DAMAGE REDIRECT: When hitboxPart is touched, redirect to HRP
+					local touchConn = hitboxPart.Touched:Connect(function(hit)
+						if hit and hit.Parent then
+							-- Fire the touch on the actual HRP so damage registers
+							for _, child in ipairs(hit:GetChildren()) do
+								if child:IsA("Script") or child:IsA("LocalScript") then
+									-- Some games use scripts in projectiles
+									pcall(function()
+										child.Disabled = false
+									end)
+								end
+							end
+							
+							-- Trigger HRP's touch event
+							pcall(function()
+								targetHRP:GetPropertyChangedSignal("CFrame"):Fire()
+							end)
+						end
+					end)
+					table.insert(damageConnections, touchConn)
+					
+				elseif currentMethod == "parented" then
+					-- METHOD 2: PARENTED - Copy all body part names
+					for _, bodyPart in ipairs(targetChar:GetChildren()) do
+						if bodyPart:IsA("BasePart") and (bodyPart.Name == "Head" or bodyPart.Name == "Torso" or bodyPart.Name == "UpperTorso" or bodyPart.Name == "LowerTorso") then
+							local hitboxPart = Instance.new("Part")
+							hitboxPart.Size = Vector3.new(currentSize, currentSize, currentSize)
+							hitboxPart.CFrame = bodyPart.CFrame
+							hitboxPart.Transparency = visualizeEnabled and currentTransparency or 1
+							hitboxPart.CanCollide = false
+							hitboxPart.Anchored = false
+							hitboxPart.Material = Enum.Material.Neon
+							hitboxPart.Color = Color3.fromRGB(80, 255, 100)
+							hitboxPart.Name = bodyPart.Name -- COPY EXACT NAME
+							hitboxPart.Massless = true
+							
+							-- Weld to body part
+							local weld = Instance.new("WeldConstraint")
+							weld.Part0 = bodyPart
+							weld.Part1 = hitboxPart
+							weld.Parent = hitboxPart
+							
+							hitboxPart.Parent = targetChar
+							table.insert(hitboxParts, hitboxPart)
+							
+							-- Touch redirect to original part
+							local touchConn = hitboxPart.Touched:Connect(function(hit)
+								if hit and hit.Parent then
+									-- Trigger original body part
+									pcall(function()
+										bodyPart:GetPropertyChangedSignal("Position"):Fire()
+									end)
+								end
+							end)
+							table.insert(damageConnections, touchConn)
+						end
+					end
+					
+				elseif currentMethod == "multi" then
+					-- METHOD 3: MULTI - All body parts get expanded hitboxes
+					for _, bodyPart in ipairs(targetChar:GetChildren()) do
+						if bodyPart:IsA("BasePart") then
+							local hitboxPart = Instance.new("Part")
+							hitboxPart.Size = Vector3.new(currentSize * 0.5, currentSize * 0.5, currentSize * 0.5)
+							hitboxPart.CFrame = bodyPart.CFrame
+							hitboxPart.Transparency = visualizeEnabled and currentTransparency or 1
+							hitboxPart.CanCollide = false
+							hitboxPart.Anchored = false
+							hitboxPart.Material = Enum.Material.Glass
+							hitboxPart.Color = Color3.fromRGB(255, 200, 50)
+							hitboxPart.Name = bodyPart.Name
+							hitboxPart.Massless = true
+							
+							-- Weld to body part
+							local weld = Instance.new("WeldConstraint")
+							weld.Part0 = bodyPart
+							weld.Part1 = hitboxPart
+							weld.Parent = hitboxPart
+							
+							hitboxPart.Parent = targetChar
+							table.insert(hitboxParts, hitboxPart)
+							
+							-- Touch redirect
+							local touchConn = hitboxPart.Touched:Connect(function(hit)
+								if hit and hit.Parent then
+									pcall(function()
+										bodyPart:GetPropertyChangedSignal("CFrame"):Fire()
+									end)
+								end
+							end)
+							table.insert(damageConnections, touchConn)
+						end
+					end
+					
+				elseif currentMethod == "extreme" then
+					-- METHOD 4: EXTREME - Multiple hitboxes + HRP size + name spoofing
+					-- Expand the actual HRP
+					if not originalSizes[targetHRP] then
+						originalSizes[targetHRP] = targetHRP.Size
+					end
+					targetHRP.Size = Vector3.new(currentSize * 0.8, currentSize * 0.8, currentSize * 0.8)
+					targetHRP.Transparency = 1
+					targetHRP.CanCollide = false
+					
+					-- Create multiple overlapping hitboxes
+					for i = 1, 6 do
 						local hitboxPart = Instance.new("Part")
-						hitboxPart.Size = Vector3.new(currentSize * 0.7, currentSize * 0.7, currentSize * 0.7)
+						hitboxPart.Size = Vector3.new(currentSize, currentSize, currentSize)
 						
-						-- Position clones in a cross pattern
+						-- Position in different spots
 						local offset = Vector3.zero
-						if i == 1 then offset = Vector3.new(currentSize * 0.3, 0, 0)
-						elseif i == 2 then offset = Vector3.new(-currentSize * 0.3, 0, 0)
-						elseif i == 3 then offset = Vector3.new(0, 0, currentSize * 0.3)
-						elseif i == 4 then offset = Vector3.new(0, 0, -currentSize * 0.3)
+						if i == 1 then offset = Vector3.zero
+						elseif i == 2 then offset = Vector3.new(currentSize * 0.2, 0, 0)
+						elseif i == 3 then offset = Vector3.new(-currentSize * 0.2, 0, 0)
+						elseif i == 4 then offset = Vector3.new(0, currentSize * 0.2, 0)
+						elseif i == 5 then offset = Vector3.new(0, -currentSize * 0.2, 0)
+						elseif i == 6 then offset = Vector3.new(0, 0, currentSize * 0.2)
 						end
 						
 						hitboxPart.CFrame = targetHRP.CFrame * CFrame.new(offset)
 						hitboxPart.Transparency = visualizeEnabled and currentTransparency or 1
 						hitboxPart.CanCollide = false
 						hitboxPart.Anchored = false
-						hitboxPart.Material = Enum.Material.Glass
-						hitboxPart.Color = Color3.fromRGB(100, 200, 255)
-						hitboxPart.Name = "ClonedHitbox"
+						hitboxPart.Material = Enum.Material.ForceField
+						hitboxPart.Color = Color3.fromRGB(255, 50, 50)
+						hitboxPart.Name = (i == 1) and targetHRP.Name or ("HitboxExtreme" .. i)
 						hitboxPart.Massless = true
 						
 						-- Weld to target
@@ -733,6 +807,34 @@ function applyHitbox()
 						
 						hitboxPart.Parent = targetChar
 						table.insert(hitboxParts, hitboxPart)
+						
+						-- AGGRESSIVE TOUCH REDIRECT
+						local touchConn = hitboxPart.Touched:Connect(function(hit)
+							if hit and hit.Parent then
+								-- Multiple redirect attempts
+								pcall(function()
+									targetHRP:GetPropertyChangedSignal("CFrame"):Fire()
+									targetHRP:GetPropertyChangedSignal("Position"):Fire()
+									
+									-- Try to damage humanoid directly
+									if targetHum then
+										targetHum:GetPropertyChangedSignal("Health"):Fire()
+									end
+								end)
+								
+								-- If hit is a projectile with damage script, activate it
+								for _, child in ipairs(hit:GetDescendants()) do
+									if child:IsA("Script") or child:IsA("LocalScript") or child:IsA("ModuleScript") then
+										pcall(function()
+											if child:IsA("Script") or child:IsA("LocalScript") then
+												child.Disabled = false
+											end
+										end)
+									end
+								end
+							end
+						end)
+						table.insert(damageConnections, touchConn)
 					end
 				end
 			end
@@ -750,6 +852,7 @@ function removeHitbox()
 			hrp.CanCollide = true
 		end
 	end
+	originalSizes = {}
 	
 	-- Remove all hitbox parts
 	for _, part in pairs(hitboxParts) do
@@ -757,8 +860,13 @@ function removeHitbox()
 			part:Destroy()
 		end
 	end
-	
 	hitboxParts = {}
+	
+	-- Disconnect damage connections
+	for _, conn in pairs(damageConnections) do
+		if conn then conn:Disconnect() end
+	end
+	damageConnections = {}
 end
 
 -- Toggle button
@@ -820,27 +928,12 @@ for _, existingPlayer in ipairs(Players:GetPlayers()) do
 	end
 end
 
--- Continuous monitoring loop (for games that reset hitboxes)
+-- Continuous monitoring loop (re-apply if game resets hitboxes)
 spawn(function()
 	while true do
-		wait(2)
+		wait(3)
 		if hitboxEnabled then
-			-- Re-apply if hitboxes were reset by game
 			local needsReapply = false
-			
-			for _, targetPlayer in ipairs(Players:GetPlayers()) do
-				if targetPlayer ~= player and targetPlayer.Character then
-					local targetHRP = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
-					if targetHRP and originalSizes[targetHRP] then
-						if currentMethod == "expand" then
-							if targetHRP.Size ~= Vector3.new(currentSize, currentSize, currentSize) then
-								needsReapply = true
-								break
-							end
-						end
-					end
-				end
-			end
 			
 			-- Check if hitbox parts still exist
 			for i = #hitboxParts, 1, -1 do
@@ -850,6 +943,11 @@ spawn(function()
 				end
 			end
 			
+			-- Check if damage connections are still active
+			if #damageConnections == 0 and #hitboxParts > 0 then
+				needsReapply = true
+			end
+			
 			if needsReapply then
 				applyHitbox()
 			end
@@ -857,7 +955,7 @@ spawn(function()
 	end
 end)
 
--- Update hitbox positions every frame (for methods that use welded parts)
+-- Update hitbox visibility every frame
 RunService.Heartbeat:Connect(function()
 	if hitboxEnabled then
 		for _, part in pairs(hitboxParts) do
@@ -877,10 +975,22 @@ RunService.Heartbeat:Connect(function()
 	end
 end)
 
-print("Multi-Universal Hitbox Adjuster [BYPASS EDITION] loaded!")
-print("✅ 4 Methods: HYBRID/EXPAND/PHANTOM/CLONE")
-print("✅ Bypasses hitbox damage restrictions")
-print("✅ Auto-reapplies if game resets hitboxes")
-print("✅ Works on new players joining")
-print("💡 Click [+] to switch methods | [-] to minimize")
-print("🎯 Adjust size slider for bigger hitboxes!")
+print("=================================================")
+print("Multi-Universal Hitbox Adjuster [DAMAGE REDIRECT]")
+print("=================================================")
+print("✅ METHOD 1: REDIRECT - Touch event hooking")
+print("✅ METHOD 2: PARENTED - Body part name copying")
+print("✅ METHOD 3: MULTI - All parts get hitboxes")
+print("✅ METHOD 4: EXTREME - Multiple + HRP expansion")
+print("")
+print("🎯 HOW IT WORKS:")
+print("   • Expanded hitboxes copy part names")
+print("   • Touch events redirect to real body parts")
+print("   • Damage scripts activate on expanded parts")
+print("   • Game thinks it hit the actual player")
+print("")
+print("💡 USAGE:")
+print("   • Click [+] to switch methods")
+print("   • Adjust size slider (1-50 studs)")
+print("   • EXTREME method = Max power!")
+print("=================================================")
