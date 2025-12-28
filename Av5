@@ -1,49 +1,26 @@
 -- LocalScript (StarterPlayerScripts)
--- Multi-Universal Hitbox Adjuster [DAMAGE REDIRECT EDITION]
+-- Universal Teleport System [MOBILE + PC]
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 
--- Only run on mobile
-if not UserInputService.TouchEnabled then
-	return
-end
-
 local player = Players.LocalPlayer
 local character, humanoid, hrp
 
-local hitboxEnabled = false
-local currentSize = 10
-local currentTransparency = 0.7
-local visualizeEnabled = true
-local currentMethod = "redirect"
+local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 
--- Hitbox parts storage
-local hitboxParts = {}
-local originalSizes = {}
-local damageConnections = {}
+-- Teleport settings
+local savedLocations = {}
+local MAX_LOCATIONS = 10
+local antiTPBack = true
+local tpMethod = "cframe" -- cframe, tween, velocity
 
 local function setupCharacter(char)
 	character = char
 	humanoid = char:WaitForChild("Humanoid")
 	hrp = char:FindFirstChild("HumanoidRootPart") or char:WaitForChild("HumanoidRootPart")
-	
-	-- Clear old hitbox parts
-	for _, part in pairs(hitboxParts) do
-		if part and part.Parent then
-			part:Destroy()
-		end
-	end
-	hitboxParts = {}
-	originalSizes = {}
-	
-	-- Disconnect old damage connections
-	for _, conn in pairs(damageConnections) do
-		if conn then conn:Disconnect() end
-	end
-	damageConnections = {}
 end
 
 if player.Character then setupCharacter(player.Character) end
@@ -51,946 +28,624 @@ player.CharacterAdded:Connect(setupCharacter)
 
 -- GUI
 local gui = Instance.new("ScreenGui")
-gui.Name = "HitboxAdjusterUI"
+gui.Name = "UniversalTeleportUI"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- Minimized Button
-local miniBtn = Instance.new("TextButton")
-miniBtn.Size = UDim2.new(0, 50, 0, 50)
-miniBtn.Position = UDim2.new(0.85, -50, 0.4, 0)
-miniBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 50)
-miniBtn.BorderSizePixel = 0
-miniBtn.Font = Enum.Font.GothamBold
-miniBtn.TextSize = 20
-miniBtn.TextColor3 = Color3.new(1, 1, 1)
-miniBtn.Text = "+"
-miniBtn.Visible = false
-miniBtn.ZIndex = 10
-miniBtn.Active = true
-miniBtn.Parent = gui
+-- Tool/Inventory style button (bottom right like mobile tools)
+local toolBtn = Instance.new("TextButton")
+toolBtn.Size = UDim2.new(0, 70, 0, 70)
+toolBtn.Position = UDim2.new(1, -85, 1, -85)
+toolBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+toolBtn.BorderSizePixel = 0
+toolBtn.Text = ""
+toolBtn.ZIndex = 5
+toolBtn.Active = true
+toolBtn.Parent = gui
 
-local miniBtnCorner = Instance.new("UICorner")
-miniBtnCorner.CornerRadius = UDim.new(0.5, 0)
-miniBtnCorner.Parent = miniBtn
+local toolCorner = Instance.new("UICorner")
+toolCorner.CornerRadius = UDim.new(0.2, 0)
+toolCorner.Parent = toolBtn
 
-local miniLabel = Instance.new("TextLabel")
-miniLabel.Size = UDim2.new(1, 0, 0, 15)
-miniLabel.Position = UDim2.new(0, 0, 1, 2)
-miniLabel.BackgroundTransparency = 1
-miniLabel.Text = "HITBOX"
-miniLabel.Font = Enum.Font.GothamBold
-miniLabel.TextSize = 9
-miniLabel.TextColor3 = Color3.fromRGB(255, 150, 50)
-miniLabel.Parent = miniBtn
+-- Tool icon
+local toolIcon = Instance.new("ImageLabel")
+toolIcon.Size = UDim2.new(0.6, 0, 0.6, 0)
+toolIcon.Position = UDim2.new(0.2, 0, 0.15, 0)
+toolIcon.BackgroundTransparency = 1
+toolIcon.Image = "rbxassetid://3926305904" -- Teleport icon
+toolIcon.ImageColor3 = Color3.fromRGB(100, 200, 255)
+toolIcon.ScaleType = Enum.ScaleType.Fit
+toolIcon.Parent = toolBtn
 
--- Main Container
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 170, 0, 320)
-mainFrame.Position = UDim2.new(0.85, -170, 0.4, 0)
-mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-mainFrame.BorderSizePixel = 0
-mainFrame.Active = false
-mainFrame.Parent = gui
+-- Tool label
+local toolLabel = Instance.new("TextLabel")
+toolLabel.Size = UDim2.new(1, 0, 0, 18)
+toolLabel.Position = UDim2.new(0, 0, 1, -20)
+toolLabel.BackgroundTransparency = 1
+toolLabel.Text = "TELEPORT"
+toolLabel.Font = Enum.Font.GothamBold
+toolLabel.TextSize = 9
+toolLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+toolLabel.Parent = toolBtn
 
-local mainCorner = Instance.new("UICorner")
-mainCorner.CornerRadius = UDim.new(0, 12)
-mainCorner.Parent = mainFrame
+-- Notification badge (for saved locations count)
+local badge = Instance.new("Frame")
+badge.Size = UDim2.new(0, 22, 0, 22)
+badge.Position = UDim2.new(1, -8, 0, -8)
+badge.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+badge.BorderSizePixel = 0
+badge.ZIndex = 6
+badge.Parent = toolBtn
 
--- Drag Handle
-local dragHandle = Instance.new("Frame")
-dragHandle.Size = UDim2.new(1, 0, 0, 35)
-dragHandle.BackgroundTransparency = 1
-dragHandle.Active = true
-dragHandle.Parent = mainFrame
+local badgeCorner = Instance.new("UICorner")
+badgeCorner.CornerRadius = UDim.new(0.5, 0)
+badgeCorner.Parent = badge
+
+local badgeLabel = Instance.new("TextLabel")
+badgeLabel.Size = UDim2.new(1, 0, 1, 0)
+badgeLabel.BackgroundTransparency = 1
+badgeLabel.Text = "0"
+badgeLabel.Font = Enum.Font.GothamBold
+badgeLabel.TextSize = 11
+badgeLabel.TextColor3 = Color3.new(1, 1, 1)
+badgeLabel.ZIndex = 7
+badgeLabel.Parent = badge
+
+-- Main panel (slides in from right like inventory)
+local mainPanel = Instance.new("Frame")
+mainPanel.Size = UDim2.new(0, 340, 0, 500)
+mainPanel.Position = UDim2.new(1, 0, 0.5, -250) -- Off-screen initially
+mainPanel.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+mainPanel.BorderSizePixel = 0
+mainPanel.ClipsDescendants = true
+mainPanel.Visible = false
+mainPanel.ZIndex = 2
+mainPanel.Parent = gui
+
+local panelCorner = Instance.new("UICorner")
+panelCorner.CornerRadius = UDim.new(0, 12)
+panelCorner.Parent = mainPanel
+
+-- Panel shadow effect
+local shadow = Instance.new("ImageLabel")
+shadow.Size = UDim2.new(1, 30, 1, 30)
+shadow.Position = UDim2.new(0, -15, 0, -15)
+shadow.BackgroundTransparency = 1
+shadow.Image = "rbxasset://textures/ui/GuiImagePlaceholder.png"
+shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+shadow.ImageTransparency = 0.7
+shadow.ScaleType = Enum.ScaleType.Slice
+shadow.SliceCenter = Rect.new(10, 10, 118, 118)
+shadow.ZIndex = 1
+shadow.Parent = mainPanel
+
+-- Top bar
+local topBar = Instance.new("Frame")
+topBar.Size = UDim2.new(1, 0, 0, 50)
+topBar.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+topBar.BorderSizePixel = 0
+topBar.ZIndex = 3
+topBar.Parent = mainPanel
+
+local topCorner = Instance.new("UICorner")
+topCorner.CornerRadius = UDim.new(0, 12)
+topCorner.Parent = topBar
 
 -- Title
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, -75, 1, 0)
-titleLabel.Position = UDim2.new(0, 10, 0, 0)
+titleLabel.Size = UDim2.new(1, -100, 1, 0)
+titleLabel.Position = UDim2.new(0, 15, 0, 0)
 titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "HITBOX"
+titleLabel.Text = "🌐 TELEPORT"
 titleLabel.Font = Enum.Font.GothamBold
-titleLabel.TextSize = 16
-titleLabel.TextColor3 = Color3.fromRGB(255, 150, 50)
+titleLabel.TextSize = 18
+titleLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-titleLabel.Parent = dragHandle
+titleLabel.ZIndex = 4
+titleLabel.Parent = topBar
 
--- Minimize Button
-local minimizeBtn = Instance.new("TextButton")
-minimizeBtn.Size = UDim2.new(0, 20, 0, 20)
-minimizeBtn.Position = UDim2.new(1, -50, 0, 7)
-minimizeBtn.Text = "-"
-minimizeBtn.BackgroundColor3 = Color3.fromRGB(255, 200, 100)
-minimizeBtn.TextColor3 = Color3.new(1, 1, 1)
-minimizeBtn.Font = Enum.Font.GothamBold
-minimizeBtn.TextSize = 20
-minimizeBtn.ZIndex = 10
-minimizeBtn.Parent = dragHandle
+-- Close button
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 40, 0, 40)
+closeBtn.Position = UDim2.new(1, -45, 0, 5)
+closeBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+closeBtn.Text = "✕"
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 18
+closeBtn.TextColor3 = Color3.new(1, 1, 1)
+closeBtn.ZIndex = 4
+closeBtn.Parent = topBar
 
-local minimizeCorner = Instance.new("UICorner")
-minimizeCorner.CornerRadius = UDim.new(0.5, 0)
-minimizeCorner.Parent = minimizeBtn
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 8)
+closeCorner.Parent = closeBtn
 
--- Method Selector Button
+-- Action buttons container
+local actionBar = Instance.new("Frame")
+actionBar.Size = UDim2.new(1, -20, 0, 45)
+actionBar.Position = UDim2.new(0, 10, 0, 60)
+actionBar.BackgroundTransparency = 1
+actionBar.ZIndex = 3
+actionBar.Parent = mainPanel
+
+-- Save Current Location button
+local saveBtn = Instance.new("TextButton")
+saveBtn.Size = UDim2.new(0.48, 0, 1, 0)
+saveBtn.Position = UDim2.new(0, 0, 0, 0)
+saveBtn.BackgroundColor3 = Color3.fromRGB(80, 200, 120)
+saveBtn.Text = "💾 SAVE"
+saveBtn.Font = Enum.Font.GothamBold
+saveBtn.TextSize = 14
+saveBtn.TextColor3 = Color3.new(1, 1, 1)
+saveBtn.ZIndex = 4
+saveBtn.Parent = actionBar
+
+local saveCorner = Instance.new("UICorner")
+saveCorner.CornerRadius = UDim.new(0, 8)
+saveCorner.Parent = saveBtn
+
+-- Teleport to Mouse button
+local mouseTPBtn = Instance.new("TextButton")
+mouseTPBtn.Size = UDim2.new(0.48, 0, 1, 0)
+mouseTPBtn.Position = UDim2.new(0.52, 0, 0, 0)
+mouseTPBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 50)
+mouseTPBtn.Text = "🎯 MOUSE"
+mouseTPBtn.Font = Enum.Font.GothamBold
+mouseTPBtn.TextSize = 14
+mouseTPBtn.TextColor3 = Color3.new(1, 1, 1)
+mouseTPBtn.ZIndex = 4
+mouseTPBtn.Parent = actionBar
+
+local mouseCorner = Instance.new("UICorner")
+mouseCorner.CornerRadius = UDim.new(0, 8)
+mouseCorner.Parent = mouseTPBtn
+
+-- Settings bar
+local settingsBar = Instance.new("Frame")
+settingsBar.Size = UDim2.new(1, -20, 0, 35)
+settingsBar.Position = UDim2.new(0, 10, 0, 115)
+settingsBar.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+settingsBar.BorderSizePixel = 0
+settingsBar.ZIndex = 3
+settingsBar.Parent = mainPanel
+
+local settingsCorner = Instance.new("UICorner")
+settingsCorner.CornerRadius = UDim.new(0, 8)
+settingsCorner.Parent = settingsBar
+
+-- Anti TP Back toggle
+local antiTPBtn = Instance.new("TextButton")
+antiTPBtn.Size = UDim2.new(0.48, -5, 1, -6)
+antiTPBtn.Position = UDim2.new(0, 3, 0, 3)
+antiTPBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
+antiTPBtn.Text = "✓ Anti-Back"
+antiTPBtn.Font = Enum.Font.Gotham
+antiTPBtn.TextSize = 11
+antiTPBtn.TextColor3 = Color3.new(1, 1, 1)
+antiTPBtn.ZIndex = 4
+antiTPBtn.Parent = settingsBar
+
+local antiCorner = Instance.new("UICorner")
+antiCorner.CornerRadius = UDim.new(0, 6)
+antiCorner.Parent = antiTPBtn
+
+-- Method selector
 local methodBtn = Instance.new("TextButton")
-methodBtn.Size = UDim2.new(0, 24, 0, 24)
-methodBtn.Position = UDim2.new(1, -28, 0, 5)
-methodBtn.Text = "+"
-methodBtn.BackgroundColor3 = Color3.fromRGB(46, 147, 216)
+methodBtn.Size = UDim2.new(0.48, -5, 1, -6)
+methodBtn.Position = UDim2.new(0.52, 2, 0, 3)
+methodBtn.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
+methodBtn.Text = "⚡ CFrame"
+methodBtn.Font = Enum.Font.Gotham
+methodBtn.TextSize = 11
 methodBtn.TextColor3 = Color3.new(1, 1, 1)
-methodBtn.Font = Enum.Font.GothamBold
-methodBtn.TextSize = 18
-methodBtn.ZIndex = 10
-methodBtn.Parent = dragHandle
+methodBtn.ZIndex = 4
+methodBtn.Parent = settingsBar
 
 local methodCorner = Instance.new("UICorner")
-methodCorner.CornerRadius = UDim.new(0.5, 0)
+methodCorner.CornerRadius = UDim.new(0, 6)
 methodCorner.Parent = methodBtn
 
--- Method Menu
-local methodMenu = Instance.new("Frame")
-methodMenu.Size = UDim2.new(0, 160, 0, 0)
-methodMenu.Position = UDim2.new(1, 5, 0, 0)
-methodMenu.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-methodMenu.BorderSizePixel = 0
-methodMenu.ClipsDescendants = true
-methodMenu.Visible = false
-methodMenu.ZIndex = 5
-methodMenu.Parent = mainFrame
+-- Saved locations label
+local locationsLabel = Instance.new("TextLabel")
+locationsLabel.Size = UDim2.new(1, -20, 0, 25)
+locationsLabel.Position = UDim2.new(0, 10, 0, 160)
+locationsLabel.BackgroundTransparency = 1
+locationsLabel.Text = "📍 SAVED LOCATIONS (0/10)"
+locationsLabel.Font = Enum.Font.GothamBold
+locationsLabel.TextSize = 12
+locationsLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+locationsLabel.TextXAlignment = Enum.TextXAlignment.Left
+locationsLabel.ZIndex = 3
+locationsLabel.Parent = mainPanel
 
-local menuCorner = Instance.new("UICorner")
-menuCorner.CornerRadius = UDim.new(0, 8)
-menuCorner.Parent = methodMenu
+-- Locations scroll frame
+local locationsScroll = Instance.new("ScrollingFrame")
+locationsScroll.Size = UDim2.new(1, -20, 1, -200)
+locationsScroll.Position = UDim2.new(0, 10, 0, 190)
+locationsScroll.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+locationsScroll.BorderSizePixel = 0
+locationsScroll.ScrollBarThickness = 6
+locationsScroll.ZIndex = 3
+locationsScroll.Parent = mainPanel
 
--- Methods
-local methods = {
-	{name = "REDIRECT", desc = "Touch Hook", id = "redirect", color = Color3.fromRGB(150, 100, 255)},
-	{name = "PARENTED", desc = "Name Copy", id = "parented", color = Color3.fromRGB(80, 200, 120)},
-	{name = "MULTI", desc = "All Parts", id = "multi", color = Color3.fromRGB(255, 140, 60)},
-	{name = "EXTREME", desc = "Max Power", id = "extreme", color = Color3.fromRGB(255, 100, 100)}
-}
+local scrollCorner = Instance.new("UICorner")
+scrollCorner.CornerRadius = UDim.new(0, 8)
+scrollCorner.Parent = locationsScroll
 
-local methodButtons = {}
+local scrollLayout = Instance.new("UIListLayout")
+scrollLayout.SortOrder = Enum.SortOrder.LayoutOrder
+scrollLayout.Padding = UDim.new(0, 5)
+scrollLayout.Parent = locationsScroll
 
-for i, method in ipairs(methods) do
-	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(1, -10, 0, 32)
-	btn.Position = UDim2.new(0, 5, 0, 5 + (i-1) * 37)
-	btn.BackgroundColor3 = method.color
-	btn.BackgroundTransparency = 0.2
-	btn.BorderSizePixel = 0
-	btn.Font = Enum.Font.GothamBold
-	btn.TextSize = 12
-	btn.TextColor3 = Color3.new(1, 1, 1)
-	btn.Text = method.name .. " · " .. method.desc
-	btn.ZIndex = 6
-	btn.Parent = methodMenu
+local scrollPadding = Instance.new("UIPadding")
+scrollPadding.PaddingTop = UDim.new(0, 5)
+scrollPadding.PaddingLeft = UDim.new(0, 5)
+scrollPadding.PaddingRight = UDim.new(0, 5)
+scrollPadding.PaddingBottom = UDim.new(0, 5)
+scrollPadding.Parent = locationsScroll
+
+-- Panel open/close state
+local isPanelOpen = false
+
+-- Tool button click
+toolBtn.Activated:Connect(function()
+	isPanelOpen = not isPanelOpen
 	
-	local btnCorner = Instance.new("UICorner")
-	btnCorner.CornerRadius = UDim.new(0, 6)
-	btnCorner.Parent = btn
-	
-	local indicator = Instance.new("Frame")
-	indicator.Size = UDim2.new(0, 3, 1, -6)
-	indicator.Position = UDim2.new(0, 3, 0, 3)
-	indicator.BackgroundColor3 = Color3.new(1, 1, 1)
-	indicator.BorderSizePixel = 0
-	indicator.Visible = (i == 1)
-	indicator.ZIndex = 7
-	indicator.Parent = btn
-	
-	local indCorner = Instance.new("UICorner")
-	indCorner.CornerRadius = UDim.new(1, 0)
-	indCorner.Parent = indicator
-	
-	methodButtons[i] = {button = btn, indicator = indicator, method = method}
-	
-	btn.Activated:Connect(function()
-		currentMethod = method.id
+	if isPanelOpen then
+		mainPanel.Visible = true
+		-- Slide in from right
+		mainPanel.Position = UDim2.new(1, 0, 0.5, -250)
+		TweenService:Create(mainPanel, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+			Position = UDim2.new(1, -350, 0.5, -250)
+		}):Play()
 		
-		for j, data in ipairs(methodButtons) do
-			data.indicator.Visible = (j == i)
-			TweenService:Create(data.button, TweenInfo.new(0.2), {
-				BackgroundTransparency = (j == i) and 0.2 or 0.5
-			}):Play()
-		end
+		-- Pulse effect on tool button
+		TweenService:Create(toolBtn, TweenInfo.new(0.15), {
+			Size = UDim2.new(0, 75, 0, 75),
+			BackgroundColor3 = Color3.fromRGB(50, 150, 255)
+		}):Play()
+	else
+		-- Slide out to right
+		TweenService:Create(mainPanel, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+			Position = UDim2.new(1, 0, 0.5, -250)
+		}):Play()
 		
-		TweenService:Create(btn, TweenInfo.new(0.1), {Size = UDim2.new(1, -8, 0, 32)}):Play()
-		task.wait(0.1)
-		TweenService:Create(btn, TweenInfo.new(0.1), {Size = UDim2.new(1, -10, 0, 32)}):Play()
+		task.wait(0.25)
+		mainPanel.Visible = false
 		
-		if hitboxEnabled then
-			applyHitbox()
-		end
-	end)
-end
+		-- Reset tool button
+		TweenService:Create(toolBtn, TweenInfo.new(0.15), {
+			Size = UDim2.new(0, 70, 0, 70),
+			BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+		}):Play()
+	end
+end)
 
--- Method menu toggle
-local menuOpen = false
+-- Close button
+closeBtn.Activated:Connect(function()
+	isPanelOpen = false
+	
+	TweenService:Create(mainPanel, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+		Position = UDim2.new(1, 0, 0.5, -250)
+	}):Play()
+	
+	task.wait(0.25)
+	mainPanel.Visible = false
+	
+	TweenService:Create(toolBtn, TweenInfo.new(0.15), {
+		Size = UDim2.new(0, 70, 0, 70),
+		BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+	}):Play()
+end)
+
+-- Anti TP Back toggle
+antiTPBtn.Activated:Connect(function()
+	antiTPBack = not antiTPBack
+	
+	if antiTPBack then
+		antiTPBtn.Text = "✓ Anti-Back"
+		antiTPBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
+	else
+		antiTPBtn.Text = "✕ Anti-Back"
+		antiTPBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+	end
+end)
+
+-- Method selector
 methodBtn.Activated:Connect(function()
-	menuOpen = not menuOpen
-	
-	if menuOpen then
-		methodMenu.Visible = true
-		TweenService:Create(methodMenu, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-			Size = UDim2.new(0, 160, 0, 155)
-		}):Play()
-		TweenService:Create(methodBtn, TweenInfo.new(0.2), {
-			Rotation = 45,
-			BackgroundColor3 = Color3.fromRGB(206, 36, 36)
-		}):Play()
+	if tpMethod == "cframe" then
+		tpMethod = "tween"
+		methodBtn.Text = "✨ Tween"
+		methodBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 255)
+	elseif tpMethod == "tween" then
+		tpMethod = "velocity"
+		methodBtn.Text = "🚀 Velocity"
+		methodBtn.BackgroundColor3 = Color3.fromRGB(255, 200, 50)
 	else
-		TweenService:Create(methodMenu, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
-			Size = UDim2.new(0, 160, 0, 0)
-		}):Play()
-		TweenService:Create(methodBtn, TweenInfo.new(0.2), {
-			Rotation = 0,
-			BackgroundColor3 = Color3.fromRGB(46, 147, 216)
-		}):Play()
-		task.wait(0.2)
-		methodMenu.Visible = false
+		tpMethod = "cframe"
+		methodBtn.Text = "⚡ CFrame"
+		methodBtn.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
 	end
 end)
 
--- Status Indicator
-local statusDot = Instance.new("Frame")
-statusDot.Size = UDim2.new(0, 10, 0, 10)
-statusDot.Position = UDim2.new(1, -15, 0, 12)
-statusDot.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-statusDot.BorderSizePixel = 0
-statusDot.Parent = dragHandle
-
-local dotCorner = Instance.new("UICorner")
-dotCorner.CornerRadius = UDim.new(0.5, 0)
-dotCorner.Parent = statusDot
-
--- Toggle Button
-local toggleBtn = Instance.new("TextButton")
-toggleBtn.Size = UDim2.new(1, -20, 0, 35)
-toggleBtn.Position = UDim2.new(0, 10, 0, 45)
-toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-toggleBtn.Text = "DISABLED"
-toggleBtn.Font = Enum.Font.GothamBold
-toggleBtn.TextSize = 14
-toggleBtn.TextColor3 = Color3.new(1, 1, 1)
-toggleBtn.Parent = mainFrame
-
-local toggleCorner = Instance.new("UICorner")
-toggleCorner.CornerRadius = UDim.new(0, 8)
-toggleCorner.Parent = toggleBtn
-
--- Size Label
-local sizeLabel = Instance.new("TextLabel")
-sizeLabel.Size = UDim2.new(1, -20, 0, 20)
-sizeLabel.Position = UDim2.new(0, 10, 0, 90)
-sizeLabel.BackgroundTransparency = 1
-sizeLabel.Text = "Size: 10 studs"
-sizeLabel.Font = Enum.Font.Gotham
-sizeLabel.TextSize = 12
-sizeLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-sizeLabel.TextXAlignment = Enum.TextXAlignment.Left
-sizeLabel.Parent = mainFrame
-
--- Size Slider
-local sizeSliderFrame = Instance.new("Frame")
-sizeSliderFrame.Size = UDim2.new(1, -20, 0, 8)
-sizeSliderFrame.Position = UDim2.new(0, 10, 0, 115)
-sizeSliderFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-sizeSliderFrame.BorderSizePixel = 0
-sizeSliderFrame.Parent = mainFrame
-
-local sizeSliderCorner = Instance.new("UICorner")
-sizeSliderCorner.CornerRadius = UDim.new(0.5, 0)
-sizeSliderCorner.Parent = sizeSliderFrame
-
-local sizeSliderFill = Instance.new("Frame")
-sizeSliderFill.Size = UDim2.new(0.18, 0, 1, 0)
-sizeSliderFill.BackgroundColor3 = Color3.fromRGB(255, 150, 50)
-sizeSliderFill.BorderSizePixel = 0
-sizeSliderFill.Parent = sizeSliderFrame
-
-local sizeFillCorner = Instance.new("UICorner")
-sizeFillCorner.CornerRadius = UDim.new(0.5, 0)
-sizeFillCorner.Parent = sizeSliderFill
-
-local sizeSliderKnob = Instance.new("TextButton")
-sizeSliderKnob.Size = UDim2.new(0, 16, 0, 16)
-sizeSliderKnob.Position = UDim2.new(0.18, -8, 0.5, -8)
-sizeSliderKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-sizeSliderKnob.Text = ""
-sizeSliderKnob.Parent = sizeSliderFrame
-
-local sizeKnobCorner = Instance.new("UICorner")
-sizeKnobCorner.CornerRadius = UDim.new(0.5, 0)
-sizeKnobCorner.Parent = sizeSliderKnob
-
--- Transparency Label
-local transLabel = Instance.new("TextLabel")
-transLabel.Size = UDim2.new(1, -20, 0, 20)
-transLabel.Position = UDim2.new(0, 10, 0, 135)
-transLabel.BackgroundTransparency = 1
-transLabel.Text = "Visual: 70%"
-transLabel.Font = Enum.Font.Gotham
-transLabel.TextSize = 12
-transLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-transLabel.TextXAlignment = Enum.TextXAlignment.Left
-transLabel.Parent = mainFrame
-
--- Transparency Slider
-local transSliderFrame = Instance.new("Frame")
-transSliderFrame.Size = UDim2.new(1, -20, 0, 8)
-transSliderFrame.Position = UDim2.new(0, 10, 0, 160)
-transSliderFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-transSliderFrame.BorderSizePixel = 0
-transSliderFrame.Parent = mainFrame
-
-local transSliderCorner = Instance.new("UICorner")
-transSliderCorner.CornerRadius = UDim.new(0.5, 0)
-transSliderCorner.Parent = transSliderFrame
-
-local transSliderFill = Instance.new("Frame")
-transSliderFill.Size = UDim2.new(0.7, 0, 1, 0)
-transSliderFill.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
-transSliderFill.BorderSizePixel = 0
-transSliderFill.Parent = transSliderFrame
-
-local transFillCorner = Instance.new("UICorner")
-transFillCorner.CornerRadius = UDim.new(0.5, 0)
-transFillCorner.Parent = transSliderFill
-
-local transSliderKnob = Instance.new("TextButton")
-transSliderKnob.Size = UDim2.new(0, 16, 0, 16)
-transSliderKnob.Position = UDim2.new(0.7, -8, 0.5, -8)
-transSliderKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-transSliderKnob.Text = ""
-transSliderKnob.Parent = transSliderFrame
-
-local transKnobCorner = Instance.new("UICorner")
-transKnobCorner.CornerRadius = UDim.new(0.5, 0)
-transKnobCorner.Parent = transSliderKnob
-
--- Visualize Toggle
-local vizBtn = Instance.new("TextButton")
-vizBtn.Size = UDim2.new(0.48, 0, 0, 30)
-vizBtn.Position = UDim2.new(0, 10, 0, 180)
-vizBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
-vizBtn.Text = "Visual: ON"
-vizBtn.Font = Enum.Font.GothamBold
-vizBtn.TextSize = 11
-vizBtn.TextColor3 = Color3.new(1, 1, 1)
-vizBtn.Parent = mainFrame
-
-local vizCorner = Instance.new("UICorner")
-vizCorner.CornerRadius = UDim.new(0, 6)
-vizCorner.Parent = vizBtn
-
--- Target Label
-local targetLabel = Instance.new("TextLabel")
-targetLabel.Size = UDim2.new(1, -20, 0, 20)
-targetLabel.Position = UDim2.new(0, 10, 0, 220)
-targetLabel.BackgroundTransparency = 1
-targetLabel.Text = "Target: All Players"
-targetLabel.Font = Enum.Font.Gotham
-targetLabel.TextSize = 11
-targetLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-targetLabel.TextXAlignment = Enum.TextXAlignment.Left
-targetLabel.Parent = mainFrame
-
--- Apply to All Button
-local applyAllBtn = Instance.new("TextButton")
-applyAllBtn.Size = UDim2.new(1, -20, 0, 30)
-applyAllBtn.Position = UDim2.new(0, 10, 0, 245)
-applyAllBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 50)
-applyAllBtn.Text = "APPLY TO ALL"
-applyAllBtn.Font = Enum.Font.GothamBold
-applyAllBtn.TextSize = 12
-applyAllBtn.TextColor3 = Color3.new(1, 1, 1)
-applyAllBtn.Parent = mainFrame
-
-local applyCorner = Instance.new("UICorner")
-applyCorner.CornerRadius = UDim.new(0, 8)
-applyCorner.Parent = applyAllBtn
-
--- Info Label
-local infoLabel = Instance.new("TextLabel")
-infoLabel.Size = UDim2.new(1, -20, 0, 30)
-infoLabel.Position = UDim2.new(0, 10, 0, 285)
-infoLabel.BackgroundTransparency = 1
-infoLabel.Text = "Damage redirect"
-infoLabel.Font = Enum.Font.Gotham
-infoLabel.TextSize = 10
-infoLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-infoLabel.TextXAlignment = Enum.TextXAlignment.Center
-infoLabel.Parent = mainFrame
-
--- Dragging
-local dragging = false
-local dragStart, startPos
-
-dragHandle.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		dragging = true
-		dragStart = input.Position
-		startPos = mainFrame.Position
-		
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				dragging = false
-			end
-		end)
-	end
-end)
-
-dragHandle.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-		if dragging then
-			local delta = input.Position - dragStart
-			mainFrame.Position = UDim2.new(
-				startPos.X.Scale, startPos.X.Offset + delta.X,
-				startPos.Y.Scale, startPos.Y.Offset + delta.Y
-			)
-		end
-	end
-end)
-
--- Mini button dragging
-local miniDragging = false
-local miniDragStart, miniStartPos
-
-miniBtn.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		miniDragging = true
-		miniDragStart = input.Position
-		miniStartPos = miniBtn.Position
-		
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				miniDragging = false
-			end
-		end)
-	end
-end)
-
-miniBtn.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-		if miniDragging then
-			local delta = input.Position - miniDragStart
-			miniBtn.Position = UDim2.new(
-				miniStartPos.X.Scale, miniStartPos.X.Offset + delta.X,
-				miniStartPos.Y.Scale, miniStartPos.Y.Offset + delta.Y
-			)
-		end
-	end
-end)
-
--- Minimize/Maximize
-local isMinimized = false
-
-minimizeBtn.Activated:Connect(function()
-	isMinimized = true
-	TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
-		Size = UDim2.new(0, 0, 0, 0)
-	}):Play()
-	
-	task.wait(0.3)
-	mainFrame.Visible = false
-	miniBtn.Visible = true
-	
-	miniBtn.Size = UDim2.new(0, 0, 0, 0)
-	TweenService:Create(miniBtn, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-		Size = UDim2.new(0, 50, 0, 50)
-	}):Play()
-end)
-
-miniBtn.Activated:Connect(function()
-	if not miniDragging then
-		isMinimized = false
-		
-		TweenService:Create(miniBtn, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
-			Size = UDim2.new(0, 0, 0, 0)
-		}):Play()
-		
-		task.wait(0.2)
-		miniBtn.Visible = false
-		mainFrame.Visible = true
-		
-		mainFrame.Size = UDim2.new(0, 0, 0, 0)
-		TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-			Size = UDim2.new(0, 170, 0, 320)
-		}):Play()
-	end
-end)
-
--- Size slider
-local sizeSliderDragging = false
-
-sizeSliderKnob.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		sizeSliderDragging = true
-		
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				sizeSliderDragging = false
-			end
-		end)
-	end
-end)
-
-sizeSliderKnob.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-		if sizeSliderDragging then
-			local mousePos = input.Position
-			local sliderPos = sizeSliderFrame.AbsolutePosition
-			local sliderSize = sizeSliderFrame.AbsoluteSize
-			
-			local relativeX = math.clamp((mousePos.X - sliderPos.X) / sliderSize.X, 0, 1)
-			currentSize = math.floor(relativeX * 50) + 1
-			
-			sizeSliderFill.Size = UDim2.new(relativeX, 0, 1, 0)
-			sizeSliderKnob.Position = UDim2.new(relativeX, -8, 0.5, -8)
-			sizeLabel.Text = "Size: " .. currentSize .. " studs"
-			
-			if hitboxEnabled then
-				applyHitbox()
-			end
-		end
-	end
-end)
-
--- Transparency slider
-local transSliderDragging = false
-
-transSliderKnob.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		transSliderDragging = true
-		
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				transSliderDragging = false
-			end
-		end)
-	end
-end)
-
-transSliderKnob.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-		if transSliderDragging then
-			local mousePos = input.Position
-			local sliderPos = transSliderFrame.AbsolutePosition
-			local sliderSize = transSliderFrame.AbsoluteSize
-			
-			local relativeX = math.clamp((mousePos.X - sliderPos.X) / sliderSize.X, 0, 1)
-			currentTransparency = relativeX
-			
-			transSliderFill.Size = UDim2.new(relativeX, 0, 1, 0)
-			transSliderKnob.Position = UDim2.new(relativeX, -8, 0.5, -8)
-			transLabel.Text = "Visual: " .. math.floor(relativeX * 100) .. "%"
-			
-			if hitboxEnabled and visualizeEnabled then
-				for _, part in pairs(hitboxParts) do
-					if part and part.Parent then
-						part.Transparency = currentTransparency
-					end
-				end
-			end
-		end
-	end
-end)
-
--- Visualize toggle
-vizBtn.Activated:Connect(function()
-	visualizeEnabled = not visualizeEnabled
-	
-	if visualizeEnabled then
-		vizBtn.Text = "Visual: ON"
-		vizBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
-		
-		if hitboxEnabled then
-			for _, part in pairs(hitboxParts) do
-				if part and part.Parent then
-					part.Transparency = currentTransparency
-				end
-			end
-		end
-	else
-		vizBtn.Text = "Visual: OFF"
-		vizBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-		
-		for _, part in pairs(hitboxParts) do
-			if part and part.Parent then
-				part.Transparency = 1
-			end
-		end
-	end
-end)
-
--- DAMAGE REDIRECT SYSTEM (THE KEY FIX!)
-function applyHitbox()
-	-- Clear old hitbox parts
-	for _, part in pairs(hitboxParts) do
-		if part and part.Parent then
-			part:Destroy()
-		end
-	end
-	hitboxParts = {}
-	
-	-- Disconnect old connections
-	for _, conn in pairs(damageConnections) do
-		if conn then conn:Disconnect() end
-	end
-	damageConnections = {}
-	
-	for _, targetPlayer in ipairs(Players:GetPlayers()) do
-		if targetPlayer ~= player and targetPlayer.Character then
-			local targetChar = targetPlayer.Character
-			local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
-			local targetHum = targetChar:FindFirstChildWhichIsA("Humanoid")
-			
-			if targetHRP and targetHum and targetHum.Health > 0 then
-				
-				if currentMethod == "redirect" then
-					-- METHOD 1: REDIRECT - Touch event hooking
-					local hitboxPart = Instance.new("Part")
-					hitboxPart.Size = Vector3.new(currentSize, currentSize, currentSize)
-					hitboxPart.CFrame = targetHRP.CFrame
-					hitboxPart.Transparency = visualizeEnabled and currentTransparency or 1
-					hitboxPart.CanCollide = false
-					hitboxPart.Anchored = false
-					hitboxPart.Material = Enum.Material.ForceField
-					hitboxPart.Color = Color3.fromRGB(255, 100, 100)
-					hitboxPart.Name = targetHRP.Name -- SAME NAME as HRP
-					hitboxPart.Massless = true
-					
-					-- Weld to target
-					local weld = Instance.new("WeldConstraint")
-					weld.Part0 = targetHRP
-					weld.Part1 = hitboxPart
-					weld.Parent = hitboxPart
-					
-					hitboxPart.Parent = targetChar
-					table.insert(hitboxParts, hitboxPart)
-					
-					-- DAMAGE REDIRECT: When hitboxPart is touched, redirect to HRP
-					local touchConn = hitboxPart.Touched:Connect(function(hit)
-						if hit and hit.Parent then
-							-- Fire the touch on the actual HRP so damage registers
-							for _, child in ipairs(hit:GetChildren()) do
-								if child:IsA("Script") or child:IsA("LocalScript") then
-									-- Some games use scripts in projectiles
-									pcall(function()
-										child.Disabled = false
-									end)
-								end
-							end
-							
-							-- Trigger HRP's touch event
-							pcall(function()
-								targetHRP:GetPropertyChangedSignal("CFrame"):Fire()
-							end)
-						end
-					end)
-					table.insert(damageConnections, touchConn)
-					
-				elseif currentMethod == "parented" then
-					-- METHOD 2: PARENTED - Copy all body part names
-					for _, bodyPart in ipairs(targetChar:GetChildren()) do
-						if bodyPart:IsA("BasePart") and (bodyPart.Name == "Head" or bodyPart.Name == "Torso" or bodyPart.Name == "UpperTorso" or bodyPart.Name == "LowerTorso") then
-							local hitboxPart = Instance.new("Part")
-							hitboxPart.Size = Vector3.new(currentSize, currentSize, currentSize)
-							hitboxPart.CFrame = bodyPart.CFrame
-							hitboxPart.Transparency = visualizeEnabled and currentTransparency or 1
-							hitboxPart.CanCollide = false
-							hitboxPart.Anchored = false
-							hitboxPart.Material = Enum.Material.Neon
-							hitboxPart.Color = Color3.fromRGB(80, 255, 100)
-							hitboxPart.Name = bodyPart.Name -- COPY EXACT NAME
-							hitboxPart.Massless = true
-							
-							-- Weld to body part
-							local weld = Instance.new("WeldConstraint")
-							weld.Part0 = bodyPart
-							weld.Part1 = hitboxPart
-							weld.Parent = hitboxPart
-							
-							hitboxPart.Parent = targetChar
-							table.insert(hitboxParts, hitboxPart)
-							
-							-- Touch redirect to original part
-							local touchConn = hitboxPart.Touched:Connect(function(hit)
-								if hit and hit.Parent then
-									-- Trigger original body part
-									pcall(function()
-										bodyPart:GetPropertyChangedSignal("Position"):Fire()
-									end)
-								end
-							end)
-							table.insert(damageConnections, touchConn)
-						end
-					end
-					
-				elseif currentMethod == "multi" then
-					-- METHOD 3: MULTI - All body parts get expanded hitboxes
-					for _, bodyPart in ipairs(targetChar:GetChildren()) do
-						if bodyPart:IsA("BasePart") then
-							local hitboxPart = Instance.new("Part")
-							hitboxPart.Size = Vector3.new(currentSize * 0.5, currentSize * 0.5, currentSize * 0.5)
-							hitboxPart.CFrame = bodyPart.CFrame
-							hitboxPart.Transparency = visualizeEnabled and currentTransparency or 1
-							hitboxPart.CanCollide = false
-							hitboxPart.Anchored = false
-							hitboxPart.Material = Enum.Material.Glass
-							hitboxPart.Color = Color3.fromRGB(255, 200, 50)
-							hitboxPart.Name = bodyPart.Name
-							hitboxPart.Massless = true
-							
-							-- Weld to body part
-							local weld = Instance.new("WeldConstraint")
-							weld.Part0 = bodyPart
-							weld.Part1 = hitboxPart
-							weld.Parent = hitboxPart
-							
-							hitboxPart.Parent = targetChar
-							table.insert(hitboxParts, hitboxPart)
-							
-							-- Touch redirect
-							local touchConn = hitboxPart.Touched:Connect(function(hit)
-								if hit and hit.Parent then
-									pcall(function()
-										bodyPart:GetPropertyChangedSignal("CFrame"):Fire()
-									end)
-								end
-							end)
-							table.insert(damageConnections, touchConn)
-						end
-					end
-					
-				elseif currentMethod == "extreme" then
-					-- METHOD 4: EXTREME - Multiple hitboxes + HRP size + name spoofing
-					-- Expand the actual HRP
-					if not originalSizes[targetHRP] then
-						originalSizes[targetHRP] = targetHRP.Size
-					end
-					targetHRP.Size = Vector3.new(currentSize * 0.8, currentSize * 0.8, currentSize * 0.8)
-					targetHRP.Transparency = 1
-					targetHRP.CanCollide = false
-					
-					-- Create multiple overlapping hitboxes
-					for i = 1, 6 do
-						local hitboxPart = Instance.new("Part")
-						hitboxPart.Size = Vector3.new(currentSize, currentSize, currentSize)
-						
-						-- Position in different spots
-						local offset = Vector3.zero
-						if i == 1 then offset = Vector3.zero
-						elseif i == 2 then offset = Vector3.new(currentSize * 0.2, 0, 0)
-						elseif i == 3 then offset = Vector3.new(-currentSize * 0.2, 0, 0)
-						elseif i == 4 then offset = Vector3.new(0, currentSize * 0.2, 0)
-						elseif i == 5 then offset = Vector3.new(0, -currentSize * 0.2, 0)
-						elseif i == 6 then offset = Vector3.new(0, 0, currentSize * 0.2)
-						end
-						
-						hitboxPart.CFrame = targetHRP.CFrame * CFrame.new(offset)
-						hitboxPart.Transparency = visualizeEnabled and currentTransparency or 1
-						hitboxPart.CanCollide = false
-						hitboxPart.Anchored = false
-						hitboxPart.Material = Enum.Material.ForceField
-						hitboxPart.Color = Color3.fromRGB(255, 50, 50)
-						hitboxPart.Name = (i == 1) and targetHRP.Name or ("HitboxExtreme" .. i)
-						hitboxPart.Massless = true
-						
-						-- Weld to target
-						local weld = Instance.new("WeldConstraint")
-						weld.Part0 = targetHRP
-						weld.Part1 = hitboxPart
-						weld.Parent = hitboxPart
-						
-						hitboxPart.Parent = targetChar
-						table.insert(hitboxParts, hitboxPart)
-						
-						-- AGGRESSIVE TOUCH REDIRECT
-						local touchConn = hitboxPart.Touched:Connect(function(hit)
-							if hit and hit.Parent then
-								-- Multiple redirect attempts
-								pcall(function()
-									targetHRP:GetPropertyChangedSignal("CFrame"):Fire()
-									targetHRP:GetPropertyChangedSignal("Position"):Fire()
-									
-									-- Try to damage humanoid directly
-									if targetHum then
-										targetHum:GetPropertyChangedSignal("Health"):Fire()
-									end
-								end)
-								
-								-- If hit is a projectile with damage script, activate it
-								for _, child in ipairs(hit:GetDescendants()) do
-									if child:IsA("Script") or child:IsA("LocalScript") or child:IsA("ModuleScript") then
-										pcall(function()
-											if child:IsA("Script") or child:IsA("LocalScript") then
-												child.Disabled = false
-											end
-										end)
-									end
-								end
-							end
-						end)
-						table.insert(damageConnections, touchConn)
-					end
-				end
-			end
-		end
-	end
+-- Update locations label
+local function updateLocationsLabel()
+	locationsLabel.Text = "📍 SAVED LOCATIONS (" .. #savedLocations .. "/" .. MAX_LOCATIONS .. ")"
+	badgeLabel.Text = tostring(#savedLocations)
 end
 
--- Remove hitbox function
-function removeHitbox()
-	-- Restore original sizes
-	for hrp, originalSize in pairs(originalSizes) do
-		if hrp and hrp.Parent then
-			hrp.Size = originalSize
-			hrp.Transparency = 0
-			hrp.CanCollide = true
-		end
-	end
-	originalSizes = {}
+-- Create location entry
+local function createLocationEntry(location, index)
+	local entry = Instance.new("Frame")
+	entry.Size = UDim2.new(1, -10, 0, 60)
+	entry.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+	entry.BorderSizePixel = 0
+	entry.LayoutOrder = index
+	entry.ZIndex = 4
+	entry.Parent = locationsScroll
 	
-	-- Remove all hitbox parts
-	for _, part in pairs(hitboxParts) do
-		if part and part.Parent then
-			part:Destroy()
-		end
-	end
-	hitboxParts = {}
+	local entryCorner = Instance.new("UICorner")
+	entryCorner.CornerRadius = UDim.new(0, 8)
+	entryCorner.Parent = entry
 	
-	-- Disconnect damage connections
-	for _, conn in pairs(damageConnections) do
-		if conn then conn:Disconnect() end
-	end
-	damageConnections = {}
-end
-
--- Toggle button
-toggleBtn.Activated:Connect(function()
-	hitboxEnabled = not hitboxEnabled
+	-- Location name
+	local nameLabel = Instance.new("TextLabel")
+	nameLabel.Size = UDim2.new(1, -90, 0, 20)
+	nameLabel.Position = UDim2.new(0, 10, 0, 5)
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.Text = location.name
+	nameLabel.Font = Enum.Font.GothamBold
+	nameLabel.TextSize = 13
+	nameLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
+	nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+	nameLabel.ZIndex = 5
+	nameLabel.Parent = entry
 	
-	if hitboxEnabled then
-		toggleBtn.Text = "ENABLED"
-		toggleBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
-		statusDot.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
-		applyHitbox()
-	else
-		toggleBtn.Text = "DISABLED"
-		toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-		statusDot.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-		removeHitbox()
-	end
-end)
-
--- Apply to all button
-applyAllBtn.Activated:Connect(function()
-	if hitboxEnabled then
-		applyHitbox()
+	-- Position info
+	local posLabel = Instance.new("TextLabel")
+	posLabel.Size = UDim2.new(1, -90, 0, 15)
+	posLabel.Position = UDim2.new(0, 10, 0, 25)
+	posLabel.BackgroundTransparency = 1
+	posLabel.Text = string.format("X: %.0f Y: %.0f Z: %.0f", location.position.X, location.position.Y, location.position.Z)
+	posLabel.Font = Enum.Font.Gotham
+	posLabel.TextSize = 10
+	posLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+	posLabel.TextXAlignment = Enum.TextXAlignment.Left
+	posLabel.ZIndex = 5
+	posLabel.Parent = entry
+	
+	-- Time saved
+	local timeLabel = Instance.new("TextLabel")
+	timeLabel.Size = UDim2.new(1, -90, 0, 15)
+	timeLabel.Position = UDim2.new(0, 10, 0, 40)
+	timeLabel.BackgroundTransparency = 1
+	timeLabel.Text = "⏰ " .. location.time
+	timeLabel.Font = Enum.Font.Gotham
+	timeLabel.TextSize = 9
+	timeLabel.TextColor3 = Color3.fromRGB(120, 120, 120)
+	timeLabel.TextXAlignment = Enum.TextXAlignment.Left
+	timeLabel.ZIndex = 5
+	timeLabel.Parent = entry
+	
+	-- Teleport button
+	local tpBtn = Instance.new("TextButton")
+	tpBtn.Size = UDim2.new(0, 35, 0, 25)
+	tpBtn.Position = UDim2.new(1, -75, 0, 10)
+	tpBtn.BackgroundColor3 = Color3.fromRGB(100, 200, 255)
+	tpBtn.Text = "→"
+	tpBtn.Font = Enum.Font.GothamBold
+	tpBtn.TextSize = 16
+	tpBtn.TextColor3 = Color3.new(1, 1, 1)
+	tpBtn.ZIndex = 5
+	tpBtn.Parent = entry
+	
+	local tpCorner = Instance.new("UICorner")
+	tpCorner.CornerRadius = UDim.new(0, 6)
+	tpCorner.Parent = tpBtn
+	
+	-- Delete button
+	local delBtn = Instance.new("TextButton")
+	delBtn.Size = UDim2.new(0, 35, 0, 25)
+	delBtn.Position = UDim2.new(1, -35, 0, 10)
+	delBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+	delBtn.Text = "✕"
+	delBtn.Font = Enum.Font.GothamBold
+	delBtn.TextSize = 14
+	delBtn.TextColor3 = Color3.new(1, 1, 1)
+	delBtn.ZIndex = 5
+	delBtn.Parent = entry
+	
+	local delCorner = Instance.new("UICorner")
+	delCorner.CornerRadius = UDim.new(0, 6)
+	delCorner.Parent = delBtn
+	
+	-- Teleport action
+	tpBtn.Activated:Connect(function()
+		teleportTo(location.position)
 		
 		-- Visual feedback
-		applyAllBtn.Text = "APPLIED!"
-		applyAllBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
-		task.wait(0.5)
-		applyAllBtn.Text = "APPLY TO ALL"
-		applyAllBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 50)
-	else
-		applyAllBtn.Text = "ENABLE FIRST!"
-		applyAllBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+		TweenService:Create(tpBtn, TweenInfo.new(0.1), {
+			BackgroundColor3 = Color3.fromRGB(80, 255, 100)
+		}):Play()
+		task.wait(0.2)
+		TweenService:Create(tpBtn, TweenInfo.new(0.1), {
+			BackgroundColor3 = Color3.fromRGB(100, 200, 255)
+		}):Play()
+	end)
+	
+	-- Delete action
+	delBtn.Activated:Connect(function()
+		table.remove(savedLocations, index)
+		refreshLocationsList()
+		updateLocationsLabel()
+	end)
+end
+
+-- Refresh locations list
+function refreshLocationsList()
+	for _, child in ipairs(locationsScroll:GetChildren()) do
+		if child:IsA("Frame") then
+			child:Destroy()
+		end
+	end
+	
+	for i, location in ipairs(savedLocations) do
+		createLocationEntry(location, i)
+	end
+	
+	locationsScroll.CanvasSize = UDim2.new(0, 0, 0, #savedLocations * 65)
+end
+
+-- Save current location
+saveBtn.Activated:Connect(function()
+	if not hrp then
+		saveBtn.Text = "❌ NO CHAR"
 		task.wait(1)
-		applyAllBtn.Text = "APPLY TO ALL"
-		applyAllBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 50)
+		saveBtn.Text = "💾 SAVE"
+		return
+	end
+	
+	if #savedLocations >= MAX_LOCATIONS then
+		saveBtn.Text = "⚠️ FULL"
+		task.wait(1)
+		saveBtn.Text = "💾 SAVE"
+		return
+	end
+	
+	local currentPos = hrp.Position
+	local timestamp = os.date("%H:%M:%S")
+	
+	table.insert(savedLocations, {
+		name = "Location " .. (#savedLocations + 1),
+		position = currentPos,
+		time = timestamp
+	})
+	
+	refreshLocationsList()
+	updateLocationsLabel()
+	
+	-- Visual feedback
+	saveBtn.Text = "✓ SAVED"
+	saveBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
+	task.wait(0.5)
+	saveBtn.Text = "💾 SAVE"
+	saveBtn.BackgroundColor3 = Color3.fromRGB(80, 200, 120)
+end)
+
+-- Teleport to mouse
+mouseTPBtn.Activated:Connect(function()
+	local mouse = player:GetMouse()
+	local targetPos = mouse.Hit.Position
+	
+	if targetPos then
+		teleportTo(targetPos)
+		
+		-- Visual feedback
+		mouseTPBtn.Text = "✓ TP"
+		mouseTPBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 100)
+		task.wait(0.5)
+		mouseTPBtn.Text = "🎯 MOUSE"
+		mouseTPBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 50)
 	end
 end)
 
--- Monitor for new players
-Players.PlayerAdded:Connect(function(newPlayer)
-	newPlayer.CharacterAdded:Connect(function()
-		task.wait(1)
-		if hitboxEnabled then
-			applyHitbox()
-		end
-	end)
-end)
-
--- Monitor existing players respawning
-for _, existingPlayer in ipairs(Players:GetPlayers()) do
-	if existingPlayer ~= player then
-		existingPlayer.CharacterAdded:Connect(function()
-			task.wait(1)
-			if hitboxEnabled then
-				applyHitbox()
+-- TELEPORT FUNCTION (ANTI TP-BACK PROTECTION)
+function teleportTo(targetPos)
+	if not hrp or not humanoid then return end
+	
+	local targetCFrame = CFrame.new(targetPos + Vector3.new(0, 3, 0))
+	
+	if tpMethod == "cframe" then
+		-- INSTANT CFRAME (with anti tp-back)
+		if antiTPBack then
+			-- Disable character physics temporarily
+			for _, part in ipairs(character:GetDescendants()) do
+				if part:IsA("BasePart") then
+					part.Anchored = true
+				end
 			end
-		end)
+		end
+		
+		hrp.CFrame = targetCFrame
+		
+		if antiTPBack then
+			task.wait(0.1)
+			-- Re-enable physics
+			for _, part in ipairs(character:GetDescendants()) do
+				if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+					part.Anchored = false
+				end
+			end
+			hrp.Anchored = false
+		end
+		
+	elseif tpMethod == "tween" then
+		-- SMOOTH TWEEN
+		local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+		local tween = TweenService:Create(hrp, tweenInfo, {CFrame = targetCFrame})
+		
+		if antiTPBack then
+			humanoid.PlatformStand = true
+		end
+		
+		tween:Play()
+		tween.Completed:Wait()
+		
+		if antiTPBack then
+			humanoid.PlatformStand = false
+		end
+		
+	elseif tpMethod == "velocity" then
+		-- VELOCITY-BASED (looks more natural)
+		local direction = (targetPos - hrp.Position).Unit
+		local distance = (targetPos - hrp.Position).Magnitude
+		
+		local bodyVelocity = Instance.new("BodyVelocity")
+		bodyVelocity.MaxForce = Vector3.new(100000, 100000, 100000)
+		bodyVelocity.Velocity = direction * math.min(distance * 2, 200)
+		bodyVelocity.Parent = hrp
+		
+		if antiTPBack then
+			humanoid.PlatformStand = true
+		end
+		
+		task.wait(0.5)
+		bodyVelocity:Destroy()
+		
+		if antiTPBack then
+			humanoid.PlatformStand = false
+		end
 	end
 end
 
--- Continuous monitoring loop (re-apply if game resets hitboxes)
-spawn(function()
-	while true do
-		wait(3)
-		if hitboxEnabled then
-			local needsReapply = false
-			
-			-- Check if hitbox parts still exist
-			for i = #hitboxParts, 1, -1 do
-				if not hitboxParts[i] or not hitboxParts[i].Parent then
-					needsReapply = true
-					table.remove(hitboxParts, i)
+-- Anti TP-back protection loop
+if antiTPBack then
+	spawn(function()
+		local lastPos = nil
+		while true do
+			wait(0.1)
+			if hrp and antiTPBack then
+				if lastPos and (hrp.Position - lastPos).Magnitude > 100 then
+					-- Large position change detected, lock position briefly
+					hrp.Anchored = true
+					task.wait(0.05)
+					hrp.Anchored = false
 				end
-			end
-			
-			-- Check if damage connections are still active
-			if #damageConnections == 0 and #hitboxParts > 0 then
-				needsReapply = true
-			end
-			
-			if needsReapply then
-				applyHitbox()
+				lastPos = hrp.Position
 			end
 		end
-	end
-end)
+	end)
+end
 
--- Update hitbox visibility every frame
-RunService.Heartbeat:Connect(function()
-	if hitboxEnabled then
-		for _, part in pairs(hitboxParts) do
-			if part and part.Parent then
-				-- Ensure visibility matches setting
-				if visualizeEnabled then
-					if part.Transparency ~= currentTransparency then
-						part.Transparency = currentTransparency
-					end
-				else
-					if part.Transparency ~= 1 then
-						part.Transparency = 1
-					end
-				end
-			end
-		end
-	end
-end)
-
-print("=================================================")
-print("Multi-Universal Hitbox Adjuster [DAMAGE REDIRECT]")
-print("=================================================")
-print("✅ METHOD 1: REDIRECT - Touch event hooking")
-print("✅ METHOD 2: PARENTED - Body part name copying")
-print("✅ METHOD 3: MULTI - All parts get hitboxes")
-print("✅ METHOD 4: EXTREME - Multiple + HRP expansion")
-print("")
-print("🎯 HOW IT WORKS:")
-print("   • Expanded hitboxes copy part names")
-print("   • Touch events redirect to real body parts")
-print("   • Damage scripts activate on expanded parts")
-print("   • Game thinks it hit the actual player")
-print("")
-print("💡 USAGE:")
-print("   • Click [+] to switch methods")
-print("   • Adjust size slider (1-50 studs)")
-print("   • EXTREME method = Max power!")
-print("=================================================")
+print("==========================================")
+print("Universal Teleport System [MOBILE + PC]")
+print("==========================================")
+print("✅ Tool-style GUI (bottom right)")
+print("✅ Slide-in inventory panel")
+print("✅ Save up to 10 locations")
+print("✅ Teleport to mouse position")
+print("✅ Anti TP-back protection")
+print("✅ 3 TP methods: CFrame/Tween/Velocity")
+print("==========================================")
+print("💡 Works even if backpack is hidden!")
+print("==========================================")
